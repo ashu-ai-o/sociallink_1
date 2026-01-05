@@ -1,0 +1,9 @@
+env/
+webcontainers/
+openrouter1.py
+logs/
+*.log
+*.sqlite3
+.env
+.env.*
+webcontainers/**/.installed_libraries.json
