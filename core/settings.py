@@ -11,7 +11,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from datetime import timedelta
-from logging import config
+from decouple import config
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -33,6 +34,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,7 +48,9 @@ INSTALLED_APPS = [
     'accounts',
     'automations',
     'analytics',
-    'daphne',
+
+    
+   
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -76,6 +80,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
 
 
 # Database
@@ -124,7 +129,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"  # optional for production
 
+# # For development only, optional
+# STATICFILES_DIRS = [
+#     BASE_DIR / "static",
+# ]
 
 
 
@@ -141,6 +151,7 @@ STATIC_URL = 'static/'
 
 
 
+AUTH_USER_MODEL = 'accounts.User'
 
 
 
