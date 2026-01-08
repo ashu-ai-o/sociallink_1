@@ -1,13 +1,17 @@
+"""
+Celery Tasks - WITH COMMENT REPLY FEATURE
+Replies to comments publicly + sends DM privately
+"""
+
 import asyncio
-from time import timezone
 from celery import shared_task
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.core.cache import cache
-import logging
-from channels.db import database_sync_to_async
+from django.utils import timezone
 from django.db.models import F
-from .services.instagram_service_async import InstagramServiceAsync
+import logging
+
+from automations.services.instagram_service_async import InstagramServiceAsync
 
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
@@ -16,11 +20,9 @@ channel_layer = get_channel_layer()
 @shared_task(bind=True, max_retries=3, soft_time_limit=300)
 def process_automation_trigger_async(self, trigger_id: str):
     """
-    Async task wrapper - runs in Celery worker
-    Doesn't block main thread
+    Process trigger: Reply to comment + Send DM
     """
     try:
-        # Run async function in event loop
         asyncio.run(_process_trigger_async(trigger_id))
     except Exception as e:
         logger.error(f"Task failed for trigger {trigger_id}: {str(e)}")
@@ -29,15 +31,17 @@ def process_automation_trigger_async(self, trigger_id: str):
 
 async def _process_trigger_async(trigger_id: str):
     """
-    Actual async processing logic
-    All I/O operations are non-blocking
+    NEW FLOW:
+    1. Reply to comment publicly (if enabled)
+    2. Send DM privately
     """
     from .models import AutomationTrigger, Automation
     from .services.instagram_service_async import InstagramServiceAsync
     from .services.ai_service_async import AIServiceAsync
-    from django.utils import timezone
     
-    # Async DB access
+    # ═══════════════════════════════════════════════════════════
+    # STEP 1: Load trigger data
+    # ═══════════════════════════════════════════════════════════
     trigger = await AutomationTrigger.objects.select_related(
         'automation',
         'automation__instagram_account'
@@ -49,42 +53,60 @@ async def _process_trigger_async(trigger_id: str):
     trigger.status = 'processing'
     await trigger.asave()
     
-    # Notify via WebSocket (non-blocking)
+    # Notify via WebSocket
     asyncio.create_task(notify_trigger_processing(automation, trigger))
     
-    # Check rate limits (using Redis cache - async)
+    # ═══════════════════════════════════════════════════════════
+    # STEP 2: Check rate limits
+    # ═══════════════════════════════════════════════════════════
     rate_key = f'rate_limit_{automation.instagram_account.id}'
     current_count = await cache.aget(rate_key, 0)
     
-    if current_count > 100:  # Max 100 DMs per hour
+    if current_count > 100:
         trigger.status = 'skipped'
         trigger.failure_reason = 'Rate limit exceeded'
         await trigger.asave()
         return
     
-    # Instagram API calls (async with httpx)
+    # ═══════════════════════════════════════════════════════════
+    # STEP 3: Initialize Instagram service
+    # ═══════════════════════════════════════════════════════════
     instagram_service = InstagramServiceAsync(
         automation.instagram_account.access_token
     )
     
-    # Check follower status if required (non-blocking)
-    if automation.require_follow:
-        is_following = await instagram_service.check_if_following(
-            automation.instagram_account.instagram_user_id,
-            trigger.instagram_user_id
-        )
-        
-        if not is_following:
-            await instagram_service.send_dm(
-                trigger.instagram_user_id,
-                automation.follow_check_message or "Please follow us first!"
-            )
-            trigger.status = 'skipped'
-            trigger.failure_reason = 'User not following'
-            await trigger.asave()
-            return
+    # ═══════════════════════════════════════════════════════════
+    # STEP 4: NEW! Reply to comment publicly (if enabled)
+    # ═══════════════════════════════════════════════════════════
     
-    # AI Enhancement (async, with retry/fallback)
+    comment_reply_success = False
+    
+    if automation.enable_comment_reply and automation.comment_reply_message:
+        if trigger.comment_id:  # Only if we have a comment ID
+            
+            # Replace variables in reply message
+            reply_message = automation.comment_reply_message.replace(
+                '{username}', trigger.instagram_username
+            )
+            
+            # Reply to comment
+            reply_result = await instagram_service.reply_to_comment(
+                comment_id=trigger.comment_id,
+                reply_message=reply_message
+            )
+            
+            if reply_result['success']:
+                comment_reply_success = True
+                trigger.comment_reply_sent = True
+                trigger.comment_reply_text = reply_message
+                logger.info(f"✓ Replied to comment from @{trigger.instagram_username}")
+            else:
+                logger.warning(f"Failed to reply to comment: {reply_result.get('error')}")
+                # Continue anyway - DM is more important
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 5: Prepare DM message (with optional AI enhancement)
+    # ═══════════════════════════════════════════════════════════
     message = automation.dm_message
     
     if automation.use_ai_enhancement and automation.ai_context:
@@ -103,13 +125,18 @@ async def _process_trigger_async(trigger_id: str):
             trigger.was_ai_enhanced = True
             trigger.ai_modifications = f"{result['provider_used']}/{result['model_used']}"
     
-    # Send DM (async)
+    # ═══════════════════════════════════════════════════════════
+    # STEP 6: Send DM
+    # ═══════════════════════════════════════════════════════════
     result = await instagram_service.send_dm(
         trigger.instagram_user_id,
         message,
         automation.dm_buttons
     )
     
+    # ═══════════════════════════════════════════════════════════
+    # STEP 7: Update records
+    # ═══════════════════════════════════════════════════════════
     if result['success']:
         trigger.status = 'sent'
         trigger.dm_sent_at = timezone.now()
@@ -117,16 +144,18 @@ async def _process_trigger_async(trigger_id: str):
         
         # Update stats
         automation.total_dms_sent += 1
+        if comment_reply_success:
+            automation.total_comment_replies += 1
         await automation.asave()
         
         # Increment rate limit
         await cache.aset(rate_key, current_count + 1, 3600)
         
-        # Update contact (async)
+        # Update contact
         await update_contact_async(automation, trigger)
         
         # Notify via WebSocket
-        asyncio.create_task(notify_dm_sent(automation, trigger))
+        asyncio.create_task(notify_dm_sent(automation, trigger, comment_reply_success))
     else:
         trigger.status = 'failed'
         trigger.failure_reason = result.get('error', 'Unknown error')
@@ -135,7 +164,9 @@ async def _process_trigger_async(trigger_id: str):
 
 
 async def notify_trigger_processing(automation, trigger):
-    """Send WebSocket notification (non-blocking)"""
+    """Send WebSocket notification"""
+    from channels.db import database_sync_to_async
+    
     user_id = await database_sync_to_async(
         lambda: automation.instagram_account.user_id
     )()
@@ -154,8 +185,10 @@ async def notify_trigger_processing(automation, trigger):
     )
 
 
-async def notify_dm_sent(automation, trigger):
-    """Notify when DM is successfully sent"""
+async def notify_dm_sent(automation, trigger, comment_reply_sent):
+    """Notify when DM is sent"""
+    from channels.db import database_sync_to_async
+    
     user_id = await database_sync_to_async(
         lambda: automation.instagram_account.user_id
     )()
@@ -166,29 +199,39 @@ async def notify_dm_sent(automation, trigger):
             'type': 'dm_sent',
             'automation_id': str(automation.id),
             'recipient': trigger.instagram_username,
-            'status': 'success'
+            'status': 'success',
+            'comment_reply_sent': comment_reply_sent  # NEW!
+        }
+    )
+
+
+async def update_contact_async(automation, trigger):
+    """Update contact record"""
+    from .models import Contact
+    
+    contact, created = await Contact.objects.aupdate_or_create(
+        instagram_account=automation.instagram_account,
+        instagram_user_id=trigger.instagram_user_id,
+        defaults={
+            'instagram_username': trigger.instagram_username,
+            'total_interactions': 1 if created else F('total_interactions') + 1,
+            'total_dms_received': 1 if created else F('total_dms_received') + 1,
+            'last_interaction': timezone.now()
         }
     )
 
 
 @shared_task
 def check_comments_bulk_async():
-    """
-    Bulk comment checking - runs every 30 seconds
-    Handles 1000s of posts concurrently
-    """
+    """Check comments across all active automations"""
     asyncio.run(_check_comments_async())
 
 
 async def _check_comments_async():
-    """
-    Check comments across all active automations
-    Fully async, processes 100+ posts concurrently
-    """
+    """Check comments and create triggers"""
     from .models import Automation
     from .services.instagram_service_async import InstagramServiceAsync
     
-    # Get all active automations
     automations = [
         a async for a in Automation.objects.filter(
             is_active=True,
@@ -198,7 +241,6 @@ async def _check_comments_async():
     
     logger.info(f"Checking {len(automations)} automations for new comments")
     
-    # Process all automations concurrently
     tasks = [process_automation_comments(automation) for automation in automations]
     await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -213,12 +255,11 @@ async def process_automation_comments(automation):
     
     posts_to_check = automation.target_posts if automation.target_posts else []
     
-    # Process all posts concurrently
     for post_id in posts_to_check:
         comments = await instagram_service.get_comments(post_id)
         
         for comment in comments:
-            # Check if already processed (async cache check)
+            # Check if already processed
             cache_key = f"comment_processed_{comment['id']}"
             if await cache.aget(cache_key):
                 continue
@@ -236,15 +277,15 @@ async def process_automation_comments(automation):
                     instagram_user_id=comment['from']['id'],
                     instagram_username=comment['from'].get('username', ''),
                     post_id=post_id,
-                    comment_id=comment['id'],
+                    comment_id=comment['id'],  # IMPORTANT: Save comment ID!
                     comment_text=comment['text'],
                     status='pending'
                 )
                 
                 # Mark as processed
-                await cache.aset(cache_key, True, 86400)  # 24 hours
+                await cache.aset(cache_key, True, 86400)
                 
-                # Queue for processing (non-blocking)
+                # Queue for processing
                 process_automation_trigger_async.delay(str(trigger.id))
                 
                 # Update stats
@@ -272,18 +313,22 @@ def check_trigger_conditions(automation, comment_text: str) -> bool:
     return False
 
 
-async def update_contact_async(automation, trigger):
-    """Update contact record asynchronously"""
-    from .models import Contact
-    
-    contact, created = await Contact.objects.aupdate_or_create(
-        instagram_account=automation.instagram_account,
-        instagram_user_id=trigger.instagram_user_id,
-        defaults={
-            'instagram_username': trigger.instagram_username,
-            'total_interactions': 1 if created else F('total_interactions') + 1,
-            'total_dms_received': 1 if created else F('total_dms_received') + 1,
-            'last_interaction': timezone.now()
-        }
-    )
-
+# ═══════════════════════════════════════════════════════════════
+# SUMMARY OF NEW FEATURES:
+# ═══════════════════════════════════════════════════════════════
+#
+# ✅ ADDED: Comment reply functionality (Step 4)
+# ✅ ADDED: comment_reply_success tracking
+# ✅ ADDED: WebSocket notification includes comment_reply_sent
+# ✅ ADDED: automation.total_comment_replies counter
+#
+# New Flow:
+# 1. Load trigger
+# 2. Check rate limits
+# 3. Initialize Instagram service
+# 4. Reply to comment publicly (NEW!)
+# 5. AI enhance DM message
+# 6. Send DM privately
+# 7. Update records
+#
+# ═══════════════════════════════════════════════════════════════

@@ -23,12 +23,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5#f(1#)%%jxhhwaxtakcsck*j3v&p$es8asxvtc2cl-y%hg6ah'
+SECRET_KEY = config('SECRET_KEY')
+
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+
+
 
 
 # Application definition
@@ -138,16 +143,19 @@ STATIC_ROOT = BASE_DIR / "staticfiles"  # optional for production
 
 
 
+# For production with PostgreSQL:
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': config('DB_NAME', default='linkplease_db'),
 #         'USER': config('DB_USER', default='postgres'),
-#         'PASSWORD': config('DB_PASSWORD', default='postgres'),
+#         'PASSWORD': config('DB_PASSWORD'),
 #         'HOST': config('DB_HOST', default='localhost'),
 #         'PORT': config('DB_PORT', default='5432'),
+#         'CONN_MAX_AGE': 600,  # Connection pooling
 #     }
 # }
+
 
 
 
@@ -184,6 +192,17 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes max per task
 
+
+
+# Celery Beat Schedule (automated tasks)
+CELERY_BEAT_SCHEDULE = {
+    'check-comments-every-30s': {
+        'task': 'automations.tasks.check_comments_bulk_async',
+        'schedule': 30.0,  # Every 30 seconds
+    },
+}
+
+
 # Redis for caching and rate limiting
 CACHES = {
     'default': {
@@ -195,7 +214,9 @@ CACHES = {
                 'max_connections': 50,
                 'retry_on_timeout': True,
             }
-        }
+        }, 
+
+         'TIMEOUT': 3600,  # 1 hour default
     }
 }
 
@@ -211,6 +232,16 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour'
+    }
+
 }
 
 SIMPLE_JWT = {
@@ -218,6 +249,8 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+
 }
 
 # CORS Settings
@@ -226,11 +259,181 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
 
-# Instagram API Settings
-INSTAGRAM_API_VERSION = 'v21.0'
-INSTAGRAM_GRAPH_API_URL = f'https://graph.facebook.com/{INSTAGRAM_API_VERSION}'
+
+
 
 # Claude AI Settings
 ANTHROPIC_API_KEY = config('ANTHROPIC_API_KEY', default='')
+
+
+
+
+
+# ============================================================================
+# INSTAGRAM API CONFIGURATION
+# ============================================================================
+
+INSTAGRAM_API_VERSION = 'v21.0'
+INSTAGRAM_GRAPH_API_URL = f'https://graph.facebook.com/{INSTAGRAM_API_VERSION}'
+INSTAGRAM_MAX_DMS_PER_HOUR = 100  # Rate limit per account
+
+
+
+
+# AI Enhancement Settings
+AI_ENHANCEMENT_TIMEOUT = 60  # seconds
+AI_ENHANCEMENT_MAX_RETRIES = 3
+AI_ENHANCEMENT_FALLBACK_TO_ORIGINAL = True  # Use original message if all models fail
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================================
+# OPENROUTER AI CONFIGURATION
+# ============================================================================
+
+# OpenRouter API (unified gateway for all AI models)
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')
+OPENROUTER_API_URL = 'https://openrouter.ai/api/v1'
+OPENROUTER_SITE_URL = config('SITE_URL', default='https://linkplease.co')
+
+# Model fallback chain (in priority order)
+# OpenRouter provides access to all these models through one API
+OPENROUTER_MODELS = [
+    {
+        'id': 'anthropic/claude-3.5-sonnet',
+        'name': 'Claude 3.5 Sonnet',
+        'max_tokens': 400,
+        'cost_per_1k_tokens': 0.003,  # $3 per million tokens
+        'speed': 'fast',
+        'use_case': 'Best quality, primary model'
+    },
+    {
+        'id': 'anthropic/claude-3-haiku',
+        'name': 'Claude 3 Haiku',
+        'max_tokens': 400,
+        'cost_per_1k_tokens': 0.00025,  # $0.25 per million tokens
+        'speed': 'very_fast',
+        'use_case': 'Fast & cheap fallback'
+    },
+    {
+        'id': 'openai/gpt-4-turbo',
+        'name': 'GPT-4 Turbo',
+        'max_tokens': 400,
+        'cost_per_1k_tokens': 0.01,  # $10 per million tokens
+        'speed': 'fast',
+        'use_case': 'OpenAI flagship model'
+    },
+    {
+        'id': 'openai/gpt-3.5-turbo',
+        'name': 'GPT-3.5 Turbo',
+        'max_tokens': 400,
+        'cost_per_1k_tokens': 0.0005,  # $0.50 per million tokens
+        'speed': 'very_fast',
+        'use_case': 'Fast & reliable fallback'
+    },
+    {
+        'id': 'meta-llama/llama-3.1-70b-instruct',
+        'name': 'Llama 3.1 70B',
+        'max_tokens': 400,
+        'cost_per_1k_tokens': 0.0005,
+        'speed': 'fast',
+        'use_case': 'Open source option'
+    },
+]
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': config('DJANGO_LOG_LEVEL', default='INFO'),
+        },
+        'automations': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+# ============================================================================
+# SECURITY SETTINGS (for production)
+# ============================================================================
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+
+# ============================================================================
+# DEFAULT PRIMARY KEY FIELD TYPE
+# ============================================================================
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
