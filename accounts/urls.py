@@ -16,6 +16,13 @@ from .views import (
     InstagramAccountViewSet
 )
 
+from .views import (
+    instagram_oauth_initiate,
+    instagram_oauth_callback,
+    disconnect_instagram_account,
+    refresh_instagram_stats
+)
+
 # Create router
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -29,6 +36,16 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/change-password/', PasswordChangeView.as_view(), name='change-password'),
     path('auth/profile/', UserProfileView.as_view(), name='profile'),
+
+
+
+    # OAuth
+    path('auth/instagram/oauth/', instagram_oauth_initiate, name='instagram_oauth'),
+    path('auth/instagram/callback/', instagram_oauth_callback, name='instagram_callback'),
+    
+    # Instagram accounts
+    path('instagram-accounts/<uuid:account_id>/disconnect/', disconnect_instagram_account),
+    path('instagram-accounts/<uuid:account_id>/refresh_stats/', refresh_instagram_stats),
     
     # Router URLs
     path('', include(router.urls)),

@@ -1,0 +1,159 @@
+WEEKLY_REPORT_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .metric-title {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .metric-change {
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .metric-change.positive {
+            color: #10b981;
+        }
+        .metric-change.negative {
+            color: #ef4444;
+        }
+        .automation-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .automation-table th {
+            background: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .automation-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .cta-button {
+            display: inline-block;
+            background: #8b5cf6;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Your Weekly Report</h1>
+        <p>{{ start_date|date:"M d" }} - {{ end_date|date:"M d, Y" }}</p>
+    </div>
+    
+    <h2>📈 Overview</h2>
+    
+    <div class="metric-card">
+        <div class="metric-title">Total DMs Sent</div>
+        <div class="metric-value">{{ total_dms_sent }}</div>
+        <div class="metric-change {{ dms_change_class }}">
+            {{ dms_change }}% vs last week
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-title">Total Triggers</div>
+        <div class="metric-value">{{ total_triggers }}</div>
+        <div class="metric-change {{ triggers_change_class }}">
+            {{ triggers_change }}% vs last week
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-title">Success Rate</div>
+        <div class="metric-value">{{ success_rate }}%</div>
+        <div class="metric-change {{ success_change_class }}">
+            {{ success_change }}% vs last week
+        </div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-title">AI Enhanced Messages</div>
+        <div class="metric-value">{{ ai_enhanced_count }}</div>
+        <div class="metric-change">{{ ai_enhancement_rate }}% of total</div>
+    </div>
+    
+    <h2>🚀 Top Performing Automations</h2>
+    
+    <table class="automation-table">
+        <thead>
+            <tr>
+                <th>Automation</th>
+                <th>Triggers</th>
+                <th>DMs Sent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for automation in top_automations %}
+            <tr>
+                <td>{{ automation.name }}</td>
+                <td>{{ automation.weekly_triggers }}</td>
+                <td>{{ automation.weekly_dms }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="text-align: center;">
+        <a href="{{ dashboard_url }}" class="cta-button">
+            View Full Dashboard
+        </a>
+    </div>
+    
+    <div class="footer">
+        <p>This is your automated weekly report from LinkPlease Pro</p>
+        <p>
+            <a href="{{ unsubscribe_url }}">Unsubscribe</a> | 
+            <a href="{{ settings_url }}">Email Preferences</a>
+        </p>
+    </div>
+</body>
+</html>

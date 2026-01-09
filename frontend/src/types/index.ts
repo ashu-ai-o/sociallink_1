@@ -28,6 +28,8 @@ export interface Automation {
   target_posts: string[];
   dm_message: string;
   dm_buttons: Array<{ text: string; url: string }>;
+  enable_comment_reply: boolean;
+  comment_reply_message: string;
   require_follow: boolean;
   follow_check_message: string;
   use_ai_enhancement: boolean;
@@ -38,6 +40,7 @@ export interface Automation {
   priority: number;
   total_triggers: number;
   total_dms_sent: number;
+  total_comment_replies: number;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +57,8 @@ export interface AutomationTrigger {
   failure_reason?: string;
   dm_sent_at?: string;
   dm_message_sent: string;
+  comment_reply_sent: boolean;
+  comment_reply_text: string;
   was_ai_enhanced: boolean;
   ai_modifications?: string;
   created_at: string;
@@ -82,17 +87,14 @@ export interface DashboardStats {
   total_dms_sent: number;
   total_triggers: number;
   today_triggers: number;
-}
-
-export interface AnalyticsData {
-  period: '7d' | '30d' | '90d';
-  total_triggers: number;
-  total_dms_sent: number;
   success_rate: number;
-  avg_response_time: number;
+  ai_enhancement_rate: number;
   daily_breakdown: Array<{
     date: string;
     triggers: number;
     dms_sent: number;
+    ai_enhanced: number;
   }>;
 }
+
+

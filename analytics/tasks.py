@@ -2,15 +2,16 @@
 Analytics Celery Tasks
 Background jobs for aggregating and processing analytics data
 """
-
 from celery import shared_task
-from django.utils import timezone
-from django.db.models import Sum, Avg, Count
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
 from datetime import timedelta
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 @shared_task
 def aggregate_daily_stats():
@@ -479,3 +480,129 @@ app.conf.beat_schedule = {
     },
 }
 """
+
+
+
+
+
+
+@shared_task
+def send_weekly_reports():
+    """
+    Send weekly reports to all users
+    Runs every Monday at 9am
+    """
+    from accounts.models import User
+    from automations.models import Automation, AutomationTrigger
+    from django.db.models import Sum, Count, Q
+    
+    users = User.objects.filter(is_active=True)
+    reports_sent = 0
+    
+    for user in users:
+        # Check if user wants weekly reports
+        if not user.email_preferences.get('weekly_reports', True):
+            continue
+        
+        try:
+            # Calculate this week's stats
+            end_date = timezone.now().date()
+            start_date = end_date - timedelta(days=7)
+            last_week_start = start_date - timedelta(days=7)
+            
+            triggers_this_week = AutomationTrigger.objects.filter(
+                automation__instagram_account__user=user,
+                created_at__date__gte=start_date,
+                created_at__date__lte=end_date
+            )
+            
+            triggers_last_week = AutomationTrigger.objects.filter(
+                automation__instagram_account__user=user,
+                created_at__date__gte=last_week_start,
+                created_at__date__lt=start_date
+            )
+            
+            # Calculate metrics
+            total_triggers = triggers_this_week.count()
+            total_dms_sent = triggers_this_week.filter(status='sent').count()
+            ai_enhanced_count = triggers_this_week.filter(was_ai_enhanced=True).count()
+            
+            success_rate = (total_dms_sent / total_triggers * 100) if total_triggers > 0 else 0
+            ai_enhancement_rate = (ai_enhanced_count / total_triggers * 100) if total_triggers > 0 else 0
+            
+            # Calculate changes
+            last_week_dms = triggers_last_week.filter(status='sent').count()
+            last_week_triggers = triggers_last_week.count()
+            
+            dms_change = ((total_dms_sent - last_week_dms) / last_week_dms * 100) if last_week_dms > 0 else 0
+            triggers_change = ((total_triggers - last_week_triggers) / last_week_triggers * 100) if last_week_triggers > 0 else 0
+            
+            last_week_success = (triggers_last_week.filter(status='sent').count() / last_week_triggers * 100) if last_week_triggers > 0 else 0
+            success_change = success_rate - last_week_success
+            
+            # Get top automations
+            automations = Automation.objects.filter(
+                instagram_account__user=user
+            ).annotate(
+                weekly_triggers=Count(
+                    'triggers',
+                    filter=Q(triggers__created_at__date__gte=start_date)
+                ),
+                weekly_dms=Count(
+                    'triggers',
+                    filter=Q(triggers__created_at__date__gte=start_date, triggers__status='sent')
+                )
+            ).order_by('-weekly_dms')[:5]
+            
+            # Prepare context
+            context = {
+                'user': user,
+                'start_date': start_date,
+                'end_date': end_date,
+                'total_triggers': total_triggers,
+                'total_dms_sent': total_dms_sent,
+                'success_rate': round(success_rate, 1),
+                'ai_enhanced_count': ai_enhanced_count,
+                'ai_enhancement_rate': round(ai_enhancement_rate, 1),
+                'dms_change': round(dms_change, 1),
+                'triggers_change': round(triggers_change, 1),
+                'success_change': round(success_change, 1),
+                'dms_change_class': 'positive' if dms_change >= 0 else 'negative',
+                'triggers_change_class': 'positive' if triggers_change >= 0 else 'negative',
+                'success_change_class': 'positive' if success_change >= 0 else 'negative',
+                'top_automations': automations,
+                'dashboard_url': f"{settings.FRONTEND_URL}/dashboard",
+                'unsubscribe_url': f"{settings.FRONTEND_URL}/settings/notifications",
+                'settings_url': f"{settings.FRONTEND_URL}/settings/notifications",
+            }
+            
+            # Send email
+            send_report_email(user.email, context)
+            reports_sent += 1
+            
+            logger.info(f"✓ Weekly report sent to {user.email}")
+            
+        except Exception as e:
+            logger.error(f"✗ Failed to send report to {user.email}: {str(e)}")
+    
+    return f"Sent {reports_sent} weekly reports"
+
+
+def send_report_email(to_email, context):
+    """
+    Send the actual email
+    """
+    subject = f"📊 Your Weekly Report - {context['start_date'].strftime('%b %d')}"
+    
+    # Render HTML template
+    html_content = render_to_string('emails/weekly_report.html', context)
+    text_content = strip_tags(html_content)
+    
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=text_content,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[to_email]
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()

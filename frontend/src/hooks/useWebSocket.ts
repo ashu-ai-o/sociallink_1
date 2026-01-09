@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useAuthStore } from '../store/authStore';
-
-interface WebSocketMessage {
-  type: string;
-  [key: string]: any;
-}
+import { useAppSelector } from './useAppSelector';
 
 interface UseWebSocketOptions {
   url: string;
-  onMessage?: (message: WebSocketMessage) => void;
+  onMessage?: (message: any) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   reconnectInterval?: number;
@@ -29,7 +24,7 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
   const [reconnectCount, setReconnectCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   const connect = useCallback(() => {
     if (!isAuthenticated) return;
@@ -76,8 +71,6 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
           setReconnectCount((prev) => prev + 1);
           connect();
         }, reconnectInterval);
-      } else {
-        console.error('Max reconnection attempts reached');
       }
     };
 
@@ -98,7 +91,7 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     } else {
-      console.warn('WebSocket not connected, cannot send message');
+      console.warn('WebSocket not connected');
     }
   }, []);
 
@@ -106,16 +99,8 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
     if (isAuthenticated) {
       connect();
     }
+    return () => disconnect();
+  }, [isAuthenticated, connect, disconnect]);
 
-    return () => {
-      disconnect();
-    };
-  }, [isAuthenticated]);
-
-  return {
-    isConnected,
-    sendMessage,
-    reconnectCount,
-    disconnect,
-  };
+  return { isConnected, sendMessage, reconnectCount, disconnect };
 };

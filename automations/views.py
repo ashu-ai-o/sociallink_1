@@ -27,6 +27,14 @@ from .services.ai_service_async import (
 )
 from .tasks import process_automation_trigger_async
 
+import csv
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from django.http import HttpResponse, StreamingHttpResponse
+from datetime import datetime, timedelta, timezone
+from django.db.models import Sum
+
 
 class AutomationViewSet(viewsets.ModelViewSet):
     """
@@ -215,6 +223,42 @@ class AutomationTriggerViewSet(viewsets.ReadOnlyModelViewSet):
         return AutomationTrigger.objects.filter(
             automation__instagram_account__user=self.request.user
         ).select_related('automation').order_by('-created_at')
+    
+
+
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """
+        Export triggers to CSV or Excel
+        GET /api/triggers/export/?format=csv&automation_id=xxx
+        """
+        format_type = request.query_params.get('format', 'csv').lower()
+        automation_id = request.query_params.get('automation_id')
+        
+        triggers = self.get_queryset()
+        if automation_id:
+            triggers = triggers.filter(automation_id=automation_id)
+        
+        fields = [
+            ('automation.name', 'Automation'),
+            ('instagram_username', 'Username'),
+            ('comment_text', 'Comment'),
+            ('status', 'Status'),
+            ('dm_sent_at', 'DM Sent At'),
+            ('was_ai_enhanced', 'AI Enhanced'),
+            ('created_at', 'Triggered At'),
+        ]
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        if format_type == 'xlsx':
+            filename = f'triggers_{timestamp}.xlsx'
+            return export_to_excel(triggers, fields, filename, 'Triggers')
+        else:
+            filename = f'triggers_{timestamp}.csv'
+            return export_to_csv(triggers, fields, filename)
+
+
 
 
 class ContactViewSet(viewsets.ReadOnlyModelViewSet):
@@ -263,6 +307,40 @@ class ContactViewSet(viewsets.ReadOnlyModelViewSet):
             'data': serializer.data,
             'message': 'Export functionality - implement with pandas or openpyxl'
         })
+    
+    @action(detail=False, methods=['get'])
+    def export(self, request):
+        """
+        Export contacts to CSV or Excel
+        GET /api/contacts/export/?format=csv
+        GET /api/contacts/export/?format=xlsx
+        """
+        format_type = request.query_params.get('format', 'csv').lower()
+        contacts = self.get_queryset()
+        
+        # Define fields to export
+        fields = [
+            ('instagram_username', 'Username'),
+            ('full_name', 'Full Name'),
+            ('instagram_user_id', 'Instagram ID'),
+            ('total_interactions', 'Total Interactions'),
+            ('total_dms_received', 'DMs Received'),
+            ('is_follower', 'Is Follower'),
+            ('first_interaction', 'First Interaction'),
+            ('last_interaction', 'Last Interaction'),
+            ('tags', 'Tags'),
+        ]
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        if format_type == 'xlsx':
+            filename = f'contacts_{timestamp}.xlsx'
+            return export_to_excel(contacts, fields, filename, 'Contacts')
+        else:
+            filename = f'contacts_{timestamp}.csv'
+            return export_to_csv(contacts, fields, filename)
+
+
 
 
 class AIProviderViewSet(viewsets.ViewSet):
@@ -443,3 +521,244 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 reverse=True
             )[:10]
         })
+    
+
+
+
+    @action(detail=False, methods=['get'])
+    def export_analytics(self, request):
+        """
+        Export analytics to Excel with multiple sheets
+        GET /api/analytics/dashboard/export_analytics/?period=30d
+        """
+        from automations.models import Automation, AutomationTrigger
+        
+        period = request.query_params.get('period', '30d')
+        days = int(period.replace('d', ''))
+        start_date = timezone.now() - timedelta(days=days)
+        
+        workbook = Workbook()
+        
+        # Sheet 1: Overview
+        ws_overview = workbook.active
+        ws_overview.title = 'Overview'
+        
+        automations = Automation.objects.filter(
+            instagram_account__user=request.user
+        )
+        
+        overview_data = [
+            ['Metric', 'Value'],
+            ['Total Automations', automations.count()],
+            ['Active Automations', automations.filter(is_active=True).count()],
+            ['Total DMs Sent', automations.aggregate(Sum('total_dms_sent'))['total_dms_sent__sum'] or 0],
+            ['Total Triggers', automations.aggregate(Sum('total_triggers'))['total_triggers__sum'] or 0],
+            ['Period', f'{days} days'],
+            ['Report Generated', timezone.now().strftime('%Y-%m-%d %H:%M:%S')],
+        ]
+        
+        for row_num, row_data in enumerate(overview_data, 1):
+            for col_num, value in enumerate(row_data, 1):
+                ws_overview.cell(row=row_num, column=col_num, value=value)
+        
+        # Sheet 2: Automation Performance
+        ws_automations = workbook.create_sheet('Automations')
+        ws_automations.append(['Name', 'Status', 'Triggers', 'DMs Sent', 'Success Rate'])
+        
+        for automation in automations:
+            success_rate = (automation.total_dms_sent / automation.total_triggers * 100) if automation.total_triggers > 0 else 0
+            ws_automations.append([
+                automation.name,
+                'Active' if automation.is_active else 'Inactive',
+                automation.total_triggers,
+                automation.total_dms_sent,
+                f'{success_rate:.1f}%'
+            ])
+        
+        # Sheet 3: Daily Breakdown
+        ws_daily = workbook.create_sheet('Daily Breakdown')
+        ws_daily.append(['Date', 'Triggers', 'DMs Sent', 'AI Enhanced'])
+        
+        triggers = AutomationTrigger.objects.filter(
+            automation__instagram_account__user=request.user,
+            created_at__gte=start_date
+        )
+        
+        for i in range(days):
+            date = (timezone.now() - timedelta(days=days-i-1)).date()
+            day_triggers = triggers.filter(created_at__date=date)
+            
+            ws_daily.append([
+                date.strftime('%Y-%m-%d'),
+                day_triggers.count(),
+                day_triggers.filter(status='sent').count(),
+                day_triggers.filter(was_ai_enhanced=True).count()
+            ])
+        
+        # Style headers
+        for sheet in workbook.worksheets:
+            for cell in sheet[1]:
+                cell.font = Font(bold=True)
+                cell.fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
+                cell.font = Font(bold=True, color='FFFFFF')
+        
+        # Save
+        output = io.BytesIO()
+        workbook.save(output)
+        output.seek(0)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'analytics_report_{timestamp}.xlsx'
+        
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================================
+# CSV EXPORT HELPERS
+# ============================================================================
+
+class Echo:
+    """Helper for streaming CSV responses"""
+    def write(self, value):
+        return value
+
+
+def export_to_csv(queryset, fields, filename):
+    """
+    Generic CSV export function
+    
+    Args:
+        queryset: Django queryset to export
+        fields: List of (field_name, display_name) tuples
+        filename: Output filename
+    """
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+    
+    def generate_rows():
+        # Header row
+        yield writer.writerow([field[1] for field in fields])
+        
+        # Data rows
+        for obj in queryset:
+            row = []
+            for field_name, _ in fields:
+                # Handle nested fields (e.g., 'automation.name')
+                if '.' in field_name:
+                    parts = field_name.split('.')
+                    value = obj
+                    for part in parts:
+                        value = getattr(value, part, '')
+                else:
+                    value = getattr(obj, field_name, '')
+                
+                # Format dates
+                if hasattr(value, 'strftime'):
+                    value = value.strftime('%Y-%m-%d %H:%M:%S')
+                
+                row.append(str(value))
+            yield writer.writerow(row)
+    
+    response = StreamingHttpResponse(
+        generate_rows(),
+        content_type='text/csv'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+# ============================================================================
+# EXCEL EXPORT HELPERS
+# ============================================================================
+
+def export_to_excel(queryset, fields, filename, sheet_name='Data'):
+    """
+    Generic Excel export function with styling
+    
+    Args:
+        queryset: Django queryset to export
+        fields: List of (field_name, display_name) tuples
+        filename: Output filename
+        sheet_name: Excel sheet name
+    """
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = sheet_name
+    
+    # Header styling
+    header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+    
+    # Write headers
+    for col_num, (_, display_name) in enumerate(fields, 1):
+        cell = worksheet.cell(row=1, column=col_num)
+        cell.value = display_name
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+    
+    # Write data
+    for row_num, obj in enumerate(queryset, 2):
+        for col_num, (field_name, _) in enumerate(fields, 1):
+            # Handle nested fields
+            if '.' in field_name:
+                parts = field_name.split('.')
+                value = obj
+                for part in parts:
+                    value = getattr(value, part, '')
+            else:
+                value = getattr(obj, field_name, '')
+            
+            # Format dates
+            if hasattr(value, 'strftime'):
+                value = value.strftime('%Y-%m-%d %H:%M:%S')
+            
+            worksheet.cell(row=row_num, column=col_num, value=str(value))
+    
+    # Auto-adjust column widths
+    for column in worksheet.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    # Save to response
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

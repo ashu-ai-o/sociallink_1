@@ -12,6 +12,7 @@ from .views import (
     AIProviderViewSet,
     AnalyticsViewSet
 )
+from .webhooks import instagram_webhook
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -23,4 +24,5 @@ router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('webhooks/instagram/', instagram_webhook, name='instagram_webhook'),
 ]

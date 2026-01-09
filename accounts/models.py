@@ -18,6 +18,19 @@ class User(AbstractUser):
     subscription_end_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    email_preferences = models.JSONField(
+    default=dict,
+    blank=True,
+    help_text="Email notification preferences"
+)
+
+    # Default preferences:
+    {
+        'weekly_reports': True,
+        'automation_alerts': True,
+        'dm_failures': True,
+        'account_issues': True
+    }
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']

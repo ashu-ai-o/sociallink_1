@@ -280,6 +280,14 @@ INSTAGRAM_GRAPH_API_URL = f'https://graph.facebook.com/{INSTAGRAM_API_VERSION}'
 INSTAGRAM_MAX_DMS_PER_HOUR = 100  # Rate limit per account
 
 
+# Instagram OAuth Settings
+FACEBOOK_APP_ID = config('FACEBOOK_APP_ID')
+FACEBOOK_APP_SECRET = config('FACEBOOK_APP_SECRET')
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
+
+# Instagram Webhook Settings
+INSTAGRAM_WEBHOOK_VERIFY_TOKEN = config('INSTAGRAM_WEBHOOK_VERIFY_TOKEN', default='your_secret_verify_token_12345')
 
 
 # AI Enhancement Settings
@@ -437,3 +445,15 @@ if not DEBUG:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# ============================================================================
+# EMAIL SETTINGS (add to core/settings.py)
+# ============================================================================
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='LinkPlease <noreply@linkplease.co>')

@@ -23,4 +23,9 @@ app.conf.beat_schedule = {
         'task': 'automations.tasks.check_comments_bulk_async',
         'schedule': 30.0,  # Every 30 seconds
     },
+
+    'send-weekly-reports': {
+        'task': 'analytics.tasks.send_weekly_reports',
+        'schedule': crontab(day_of_week=1, hour=9, minute=0),  # Monday 9am
+    },
 }
