@@ -19,13 +19,24 @@ app.conf.update(
 
 # Beat schedule - runs in background
 app.conf.beat_schedule = {
-    'check-comments-every-30s': {
-        'task': 'automations.tasks.check_comments_bulk_async',
-        'schedule': 30.0,  # Every 30 seconds
-    },
+    # 'check-comments-every-30s': {
+    #     'task': 'automations.tasks.check_comments_bulk_async',
+    #     'schedule': 30.0,  # Every 30 seconds
+    # },
 
     'send-weekly-reports': {
         'task': 'analytics.tasks.send_weekly_reports',
         'schedule': crontab(day_of_week=1, hour=9, minute=0),  # Monday 9am
+    },
+
+    'process-queued-triggers': {
+        'task': 'automations.tasks.process_queued_triggers',
+        'schedule': crontab(minute=0),  # Every hour at :00
+    },
+    
+    # Optional: Check comments every 5 minutes (if not using webhooks)
+    'check-comments': {
+        'task': 'automations.tasks.check_comments_bulk_async',
+        'schedule': crontab(minute='*/5'),
     },
 }

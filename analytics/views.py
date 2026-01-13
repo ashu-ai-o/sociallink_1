@@ -381,3 +381,35 @@ class DashboardViewSet(viewsets.ViewSet):
             return Response({
                 'error': 'Unsupported format'
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+
+    @action(detail=False, methods=['get'])
+    def rate_limit_status(self, request):
+        '''
+        Get rate limit status for all connected accounts
+        GET /api/analytics/dashboard/rate_limit_status/
+        '''
+        from automations.models import InstagramAccount
+        from automations.ratelimiting import InstagramRateLimiter, QueueManager
+        
+        accounts = InstagramAccount.objects.filter(
+            user=request.user,
+            is_active=True
+        )
+        
+        status_data = []
+        
+        for account in accounts:
+            rate_limiter = InstagramRateLimiter(account)
+            
+            status_data.append({
+                'account_id': account.id,
+                'username': account.username,
+                'dms_sent_this_hour': rate_limiter._get_current_count(),
+                'remaining_quota': rate_limiter.get_remaining_quota(),
+                'limit': rate_limiter.DM_LIMIT_PER_HOUR,
+                'reset_time': rate_limiter.get_reset_time().isoformat(),
+                'queue_size': QueueManager.get_queue_size(account),
+            })
+        
+        return Response(status_data)

@@ -65,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.RateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -111,6 +112,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+     'NAME': 'accounts.validators.ComplexPasswordValidator',  # Custom validator
+    },
+    {
+        'NAME': 'accounts.validators.CommonPasswordValidator',  # Custom validator
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
@@ -299,7 +306,15 @@ AI_ENHANCEMENT_FALLBACK_TO_ORIGINAL = True  # Use original message if all models
 
 
 
-
+# CSRF Settings
+CSRF_COOKIE_SECURE = not DEBUG  # Only send CSRF cookie over HTTPS in production
+CSRF_COOKIE_HTTPONLY = True  # Prevent JavaScript access to CSRF cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF attacks
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://yourdomain.com',  # Add your production domain
+]
 
 
 
@@ -457,3 +472,32 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='LinkPlease <noreply@linkplease.co>')
+
+
+
+
+
+
+
+
+
+
+
+
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_SSL_REDIRECT = not DEBUG  # Force HTTPS in production
+
+# Session Security
+SESSION_COOKIE_SECURE = not DEBUG  # Only send session cookie over HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
+SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF
+SESSION_COOKIE_AGE = 86400  # 24 hours
+
+# Additional Security
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')

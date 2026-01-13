@@ -6,6 +6,31 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      scale: {
+        '98': '0.98',
+        '95': '0.95',
+      },
+      minHeight: {
+        'touch': '44px',  // Apple's recommended minimum
+        'touch-lg': '48px',
+      },
+      minWidth: {
+        'touch': '44px',
+        'touch-lg': '48px',
+      },
+
+       plugins: [
+    // Add touch-specific utilities
+    function({ addUtilities }) {
+      addUtilities({
+        '.touch-manipulation': {
+          'touch-action': 'manipulation',
+          '-webkit-tap-highlight-color': 'transparent',
+        },
+      });
+    },
+  ],
+
       colors: {
         primary: {
           50: '#faf5ff',

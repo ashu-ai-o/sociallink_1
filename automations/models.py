@@ -5,6 +5,7 @@ Automation Models - WITH COMMENT REPLY FEATURE
 from django.db import models
 import uuid
 from accounts.models import InstagramAccount
+from .validators import InputSanitizer
 
 
 class Automation(models.Model):
@@ -122,6 +123,57 @@ class Automation(models.Model):
         if self.total_triggers == 0:
             return 0
         return (self.total_comment_replies / self.total_triggers) * 100
+    
+
+
+    def clean(self):
+        """Validate and sanitize fields before saving"""
+        super().clean()
+        
+        # Sanitize name
+        self.name = InputSanitizer.sanitize_text(self.name, max_length=200)
+        
+        # Sanitize DM message
+        self.dm_message = InputSanitizer.sanitize_text(self.dm_message, max_length=1000)
+        
+        # Sanitize AI context
+        if self.ai_context:
+            self.ai_context = InputSanitizer.sanitize_text(self.ai_context, max_length=2000)
+        
+        # Sanitize comment reply message
+        if self.comment_reply_message:
+            self.comment_reply_message = InputSanitizer.sanitize_text(
+                self.comment_reply_message, 
+                max_length=200
+            )
+        
+        # Sanitize trigger keywords
+        if self.trigger_keywords:
+            self.trigger_keywords = [
+                InputSanitizer.sanitize_text(keyword, max_length=100)
+                for keyword in self.trigger_keywords[:50]  # Max 50 keywords
+            ]
+        
+        # Sanitize DM buttons
+        if self.dm_buttons:
+            sanitized_buttons = []
+            for button in self.dm_buttons[:5]:  # Max 5 buttons
+                if isinstance(button, dict):
+                    sanitized_button = {
+                        'text': InputSanitizer.sanitize_text(
+                            button.get('text', ''), 
+                            max_length=20
+                        ),
+                        'url': InputSanitizer.sanitize_url(button.get('url', ''))
+                    }
+                    sanitized_buttons.append(sanitized_button)
+            self.dm_buttons = sanitized_buttons
+    
+    def save(self, *args, **kwargs):
+        """Call clean before saving"""
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 
 class AutomationTrigger(models.Model):
@@ -145,6 +197,7 @@ class AutomationTrigger(models.Model):
         max_length=20,
         choices=[
             ('pending', 'Pending'),
+            ('queued', 'Queued'),   
             ('processing', 'Processing'),
             ('sent', 'DM Sent'),
             ('failed', 'Failed'),
@@ -152,6 +205,9 @@ class AutomationTrigger(models.Model):
         ],
         default='pending'
     )
+    queued_at = models.DateTimeField(null=True, blank=True) 
+    error_message = models.TextField(blank=True)        
+
     failure_reason = models.TextField(blank=True)
     
     # ═══════════════════════════════════════════════════════════════
