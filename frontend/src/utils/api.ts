@@ -243,6 +243,116 @@ class ApiClient {
     const response = await this.client.post('/ai-providers/test/', data);
     return response.data;
   }
+
+  // User Profile
+  async getUserProfile() {
+    const response = await this.client.get('/auth/profile/');
+    return response.data;
+  }
+
+  async updateUserProfile(data: any) {
+    const response = await this.client.patch('/auth/profile/', data);
+    return response.data;
+  }
+
+  async changePassword(data: { old_password: string; new_password: string }) {
+    const response = await this.client.post('/auth/change-password/', data);
+    return response.data;
+  }
+
+  // Instagram OAuth
+  async initiateInstagramOAuth() {
+    const response = await this.client.get('/auth/instagram/oauth/');
+    return response.data;
+  }
+
+  async disconnectInstagram(accountId: string) {
+    const response = await this.client.delete(`/instagram-accounts/${accountId}/disconnect/`);
+    return response.data;
+  }
+
+  async refreshInstagramStats(accountId: string) {
+    const response = await this.client.post(`/instagram-accounts/${accountId}/refresh_stats/`);
+    return response.data;
+  }
+
+  // Advanced Analytics
+  async getDashboardOverview(period: string = '30d') {
+    const response = await this.client.get('/analytics/dashboard/overview/', {
+      params: { period },
+    });
+    return response.data;
+  }
+
+  async getTopPerformers(limit: number = 10) {
+    const response = await this.client.get('/analytics/dashboard/top_performers/', {
+      params: { limit },
+    });
+    return response.data;
+  }
+
+  async getRealtimeStats() {
+    const response = await this.client.get('/analytics/dashboard/realtime_stats/');
+    return response.data;
+  }
+
+  async getRateLimitStatus() {
+    const response = await this.client.get('/analytics/dashboard/rate_limit_status/');
+    return response.data;
+  }
+
+  async exportAnalytics(period: string = '30d') {
+    const response = await this.client.get('/analytics/dashboard/export_analytics/', {
+      params: { period },
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // Automation Testing
+  async testAutomationTrigger(id: string, data: any) {
+    const response = await this.client.post(`/automations/${id}/test_trigger/`, data);
+    return response.data;
+  }
+
+  async testAIEnhancement(data: any) {
+    const response = await this.client.post('/automations/test_ai_enhancement/', data);
+    return response.data;
+  }
+
+  // Export Functions
+  async exportContactsFile(format: 'csv' | 'xlsx') {
+    const response = await this.client.get('/contacts/export/', {
+      params: { format },
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  async exportTriggersFile(format: 'csv' | 'xlsx', automationId?: string) {
+    const response = await this.client.get('/triggers/export/', {
+      params: { format, automation_id: automationId },
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // Email Preferences
+  async getEmailPreferences() {
+    const response = await this.client.get('/users/email_preferences/');
+    return response.data;
+  }
+
+  async updateEmailPreferences(preferences: any) {
+    const response = await this.client.patch('/users/email_preferences/', preferences);
+    return response.data;
+  }
+
+  // Onboarding
+  async completeOnboarding() {
+    const response = await this.client.post('/auth/complete-onboarding/');
+    return response.data;
+  }
 }
 
 export const api = new ApiClient();

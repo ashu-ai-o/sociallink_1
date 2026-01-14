@@ -12,12 +12,13 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model"""
-    
+
     class Meta:
         model = User
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
-            'plan', 'subscription_end_date', 'created_at', 'updated_at'
+            'plan', 'subscription_end_date', 'onboarding_completed',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -189,12 +190,12 @@ class InstagramAccountConnectSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Detailed user profile with Instagram accounts"""
     instagram_accounts = InstagramAccountSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = User
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
-            'plan', 'subscription_end_date', 'instagram_accounts',
-            'created_at', 'updated_at'
+            'plan', 'subscription_end_date', 'onboarding_completed',
+            'instagram_accounts', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'email', 'created_at', 'updated_at']

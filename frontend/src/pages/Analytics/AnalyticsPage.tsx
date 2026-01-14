@@ -1,17 +1,9 @@
+// ============================================================================
+// ANALYTICS PAGE - Clean performance metrics with ZapDM-inspired design
+// ============================================================================
+
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Download } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import { TrendingUp, TrendingDown, Calendar, MessageCircle, Send, Zap } from 'lucide-react';
 import { api } from '../../utils/api';
 
 export const AnalyticsPage = () => {
@@ -26,7 +18,7 @@ export const AnalyticsPage = () => {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const data = await api.getDashboardStats(period);
+      const data = await api.getDashboardOverview(period);
       setStats(data);
     } catch (error) {
       console.error('Failed to load analytics:', error);
@@ -35,23 +27,35 @@ export const AnalyticsPage = () => {
     }
   };
 
+  const periodLabels = {
+    '7d': 'Last 7 days',
+    '30d': 'Last 30 days',
+    '90d': 'Last 90 days',
+  };
+
   return (
-    <div className="space-y-6 slide-in-up">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Analytics</h1>
-          <p className="text-[var(--text-secondary)] mt-1">
-            Track your automation performance and insights
+          <h1 className="text-3xl font-semibold text-neutral-900 dark:text-white">
+            Analytics
+          </h1>
+          <p className="text-neutral-600 dark:text-neutral-400 mt-1">
+            Track your automation performance and engagement
           </p>
         </div>
-        <div className="flex gap-2">
+
+        {/* Period Selector */}
+        <div className="flex gap-2 bg-neutral-100 dark:bg-neutral-900 rounded-lg p-1">
           {(['7d', '30d', '90d'] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`btn ${
-                period === p ? 'btn-primary' : 'btn-secondary'
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                period === p
+                  ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
               }`}
             >
               {p === '7d' ? '7 Days' : p === '30d' ? '30 Days' : '90 Days'}
@@ -60,197 +64,200 @@ export const AnalyticsPage = () => {
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Period Label */}
+      <div className="text-sm text-neutral-600 dark:text-neutral-400">
+        Showing data for {periodLabels[period]}
+      </div>
+
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          label="Total DMs Sent"
+          label="Messages Sent"
           value={loading ? '...' : stats?.total_dms_sent?.toLocaleString() || '0'}
-          change={12}
-          icon={<TrendingUp className="w-6 h-6" />}
+          subtitle="Total automated DMs"
+          icon={<Send className="w-5 h-5" />}
+          iconBgColor="bg-blue-50 dark:bg-blue-900/20"
+          iconColor="text-blue-600 dark:text-blue-400"
         />
         <MetricCard
           label="Success Rate"
           value={loading ? '...' : `${Math.round(stats?.success_rate || 0)}%`}
-          change={5}
-          icon={<TrendingUp className="w-6 h-6" />}
+          subtitle="Delivered successfully"
+          icon={<TrendingUp className="w-5 h-5" />}
+          iconBgColor="bg-green-50 dark:bg-green-900/20"
+          iconColor="text-green-600 dark:text-green-400"
         />
         <MetricCard
           label="Total Triggers"
           value={loading ? '...' : stats?.total_triggers?.toLocaleString() || '0'}
-          change={8}
-          icon={<Calendar className="w-6 h-6" />}
+          subtitle="Comments processed"
+          icon={<MessageCircle className="w-5 h-5" />}
+          iconBgColor="bg-amber-50 dark:bg-amber-900/20"
+          iconColor="text-amber-600 dark:text-amber-400"
         />
         <MetricCard
-          label="AI Enhanced"
-          value={loading ? '...' : `${Math.round(stats?.ai_enhancement_rate || 0)}%`}
-          change={-3}
-          icon={<TrendingUp className="w-6 h-6" />}
+          label="Active Automations"
+          value={loading ? '...' : stats?.active_automations?.toString() || '0'}
+          subtitle={`${stats?.total_automations || 0} total`}
+          icon={<Zap className="w-5 h-5" />}
+          iconBgColor="bg-neutral-100 dark:bg-neutral-800"
+          iconColor="text-neutral-700 dark:text-neutral-300"
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* DMs Over Time */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-            DMs Sent Over Time
-          </h3>
-          {loading ? (
-            <div className="h-[300px] bg-[var(--bg-secondary)] rounded animate-pulse"></div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats?.daily_breakdown || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
-                <XAxis
-                  dataKey="date"
-                  stroke="var(--text-tertiary)"
-                  tick={{ fill: 'var(--text-tertiary)' }}
-                />
-                <YAxis
-                  stroke="var(--text-tertiary)"
-                  tick={{ fill: 'var(--text-tertiary)' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="dms_sent"
-                  stroke="var(--accent-primary)"
-                  strokeWidth={2}
-                  name="DMs Sent"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+      {/* Performance Overview */}
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800">
+        <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-6">
+          Performance Overview
+        </h2>
 
-        {/* Top Automations */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-            Top Performing Automations
-          </h3>
-          {loading ? (
-            <div className="h-[300px] bg-[var(--bg-secondary)] rounded animate-pulse"></div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={[
-                  { name: 'Link Please', conversions: 145 },
-                  { name: 'Product Info', conversions: 98 },
-                  { name: 'FAQ Bot', conversions: 76 },
-                  { name: 'Welcome DM', conversions: 54 },
-                ]}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" />
-                <XAxis
-                  dataKey="name"
-                  stroke="var(--text-tertiary)"
-                  tick={{ fill: 'var(--text-tertiary)' }}
-                />
-                <YAxis
-                  stroke="var(--text-tertiary)"
-                  tick={{ fill: 'var(--text-tertiary)' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Bar dataKey="conversions" fill="var(--accent-primary)" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+        <div className="space-y-6">
+          {/* Success Rate Bar */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                Delivery Success Rate
+              </span>
+              <span className="text-lg font-semibold text-neutral-900 dark:text-white">
+                {loading ? '...' : `${Math.round(stats?.success_rate || 0)}%`}
+              </span>
+            </div>
+            <div className="w-full h-3 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${stats?.success_rate || 0}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-neutral-500 mt-2">
+              Messages delivered successfully to recipients
+            </p>
+          </div>
+
+          {/* Engagement Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+            <div>
+              <div className="text-2xl font-semibold text-neutral-900 dark:text-white">
+                {loading ? '...' : stats?.total_dms_sent || 0}
+              </div>
+              <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                Total DMs Sent
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-semibold text-neutral-900 dark:text-white">
+                {loading ? '...' : stats?.total_triggers || 0}
+              </div>
+              <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                Comments Triggered
+              </div>
+            </div>
+            <div>
+              <div className="text-2xl font-semibold text-neutral-900 dark:text-white">
+                {loading ? '...' : stats?.today_triggers || 0}
+              </div>
+              <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                Today's Activity
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Conversion Funnel */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-            Conversion Funnel
+      {/* Quick Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800">
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+            Automation Status
           </h3>
-          <button className="btn btn-secondary text-sm">
-            <Download className="w-4 h-4" />
-            Export Report
-          </button>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">Active</span>
+              <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                {loading ? '...' : stats?.active_automations || 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">Total</span>
+              <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                {loading ? '...' : stats?.total_automations || 0}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          {[
-            { label: 'Comments', value: 1000, color: 'bg-purple-500' },
-            { label: 'DMs Sent', value: 850, color: 'bg-blue-500' },
-            { label: 'Opened', value: 680, color: 'bg-green-500' },
-            { label: 'Clicked', value: 340, color: 'bg-yellow-500' },
-            { label: 'Converted', value: 170, color: 'bg-pink-500' },
-          ].map((stage, index) => (
-            <div key={stage.label} className="flex items-center flex-1">
-              <div className="text-center flex-1">
-                <div className="text-3xl font-bold text-[var(--text-primary)] mb-1">
-                  {stage.value}
-                </div>
-                <div className="text-sm text-[var(--text-secondary)] mb-2">
-                  {stage.label}
-                </div>
-                {index > 0 && (
-                  <div className="text-xs text-green-600 dark:text-green-400">
-                    {(
-                      (stage.value /
-                        [1000, 850, 680, 340][index - 1]) *
-                      100
-                    ).toFixed(0)}
-                    %
-                  </div>
-                )}
-                <div className={`h-2 ${stage.color} rounded-full mt-2`}></div>
-              </div>
-              {index < 4 && (
-                <div className="flex-shrink-0 w-8 h-0.5 bg-[var(--border-primary)] mx-2"></div>
-              )}
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800">
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">
+            Engagement
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Avg. per day
+              </span>
+              <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                {loading
+                  ? '...'
+                  : Math.round(
+                      (stats?.total_triggers || 0) /
+                        (period === '7d' ? 7 : period === '30d' ? 30 : 90)
+                    ) || 0}
+              </span>
             </div>
-          ))}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Today's triggers
+              </span>
+              <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                {loading ? '...' : stats?.today_triggers || 0}
+              </span>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Info Card */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-2xl p-6 border border-blue-100 dark:border-blue-900/50">
+        <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
+          About Your Analytics
+        </h3>
+        <p className="text-neutral-700 dark:text-neutral-300">
+          Analytics data updates every hour. Track how your automations perform over time and
+          optimize your messaging strategy for better engagement. Your success rate indicates
+          how many messages were successfully delivered to recipients.
+        </p>
       </div>
     </div>
   );
 };
 
+// Metric Card Component
 interface MetricCardProps {
   label: string;
-  value: string | number;
-  change?: number;
+  value: string;
+  subtitle: string;
   icon: React.ReactNode;
+  iconBgColor: string;
+  iconColor: string;
 }
 
-const MetricCard = ({ label, value, change, icon }: MetricCardProps) => (
-  <div className="card">
-    <div className="flex items-center justify-between mb-2">
-      <span className="text-sm text-[var(--text-secondary)]">{label}</span>
-      <div className="p-2 bg-[var(--accent-light)] rounded-lg text-[var(--accent-primary)]">
+const MetricCard = ({
+  label,
+  value,
+  subtitle,
+  icon,
+  iconBgColor,
+  iconColor,
+}: MetricCardProps) => {
+  return (
+    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 hover:shadow-soft-lg transition-all duration-200">
+      <div className={`inline-flex p-3 rounded-xl ${iconBgColor} ${iconColor} mb-4`}>
         {icon}
       </div>
-    </div>
-    <div className="text-3xl font-bold text-[var(--text-primary)]">{value}</div>
-    {change !== undefined && (
-      <div
-        className={`flex items-center gap-1 mt-2 text-sm ${
-          change >= 0 ? 'text-green-600' : 'text-red-600'
-        }`}
-      >
-        {change >= 0 ? (
-          <TrendingUp className="w-4 h-4" />
-        ) : (
-          <TrendingDown className="w-4 h-4" />
-        )}
-        <span>{Math.abs(change)}% vs last period</span>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">{label}</p>
+        <p className="text-3xl font-semibold text-neutral-900 dark:text-white">{value}</p>
+        <p className="text-xs text-neutral-500">{subtitle}</p>
       </div>
-    )}
-  </div>
-);
+    </div>
+  );
+};

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download } from 'lucide-react';
-import { api } from '../lib/api';
+import { api } from '../utils/api';
 
 interface ExportButtonProps {
   type: 'contacts' | 'triggers' | 'analytics';

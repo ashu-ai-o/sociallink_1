@@ -25,12 +25,12 @@ export const useAutomations = () => {
         break;
 
       case 'automation_triggered':
-        console.log('🔔 Automation triggered:', message.trigger_data);
+        console.log('[Automation triggered]', message.trigger_data);
         // Update UI or show notification
         break;
 
       case 'dm_sent':
-        console.log('📨 DM sent to:', message.recipient);
+        console.log('[DM sent to]', message.recipient);
         // Show success notification
         setAutomations((prev) =>
           prev.map((a) =>

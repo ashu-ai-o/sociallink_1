@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, TrendingUp } from 'lucide-react';
-import { api } from '../lib/api';
+import { api } from '../utils/api';
 
 interface RateLimitData {
   username: string;

@@ -12,6 +12,7 @@ from .views import (
     UserLogoutView,
     PasswordChangeView,
     UserProfileView,
+    CompleteOnboardingView,
     UserViewSet,
     InstagramAccountViewSet
 )
@@ -36,8 +37,7 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/change-password/', PasswordChangeView.as_view(), name='change-password'),
     path('auth/profile/', UserProfileView.as_view(), name='profile'),
-
-
+    path('auth/complete-onboarding/', CompleteOnboardingView.as_view(), name='complete-onboarding'),
 
     # OAuth
     path('auth/instagram/oauth/', instagram_oauth_initiate, name='instagram_oauth'),

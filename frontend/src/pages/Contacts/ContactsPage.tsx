@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Search, Download, Filter, Mail, User } from 'lucide-react';
+import { Search, Download, Filter, Mail, User, FileSpreadsheet, TrendingUp } from 'lucide-react';
 import { api } from '../../utils/api';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 
 export const ContactsPage = () => {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -19,26 +22,32 @@ export const ContactsPage = () => {
       setContacts(data.results || []);
     } catch (error) {
       console.error('Failed to load contacts:', error);
+      toast.error('Failed to load contacts');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'csv' | 'xlsx') => {
     try {
-      const blob = await api.client.get('/contacts/export/', {
-        params: { format: 'csv' },
-        responseType: 'blob',
-      });
+      toast.loading('Preparing export...');
+      const blob = await api.exportContactsFile(format);
+
       // Download blob
-      const url = window.URL.createObjectURL(new Blob([blob.data]));
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'contacts.csv');
+      link.setAttribute('download', `contacts_${new Date().toISOString().split('T')[0]}.${format}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+
+      toast.dismiss();
+      toast.success(`Contacts exported as ${format.toUpperCase()}`);
+      setShowExportMenu(false);
     } catch (error) {
+      toast.dismiss();
+      toast.error('Export failed');
       console.error('Export failed:', error);
     }
   };
@@ -52,16 +61,57 @@ export const ContactsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Contacts</h1>
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Customer Database</h1>
           <p className="text-[var(--text-secondary)] mt-1">
-            {contacts.length} total contacts from your automations
+            {contacts.length} engaged followers automatically captured and organized by your automations
           </p>
         </div>
-        <button onClick={handleExport} className="btn btn-primary">
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="btn btn-primary"
+          >
+            <Download className="w-4 h-4" />
+            Export Contacts
+          </button>
+          {showExportMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg shadow-lg z-10">
+              <button
+                onClick={() => handleExport('csv')}
+                className="w-full px-4 py-2 text-left hover:bg-[var(--bg-hover)] flex items-center gap-2 text-[var(--text-primary)]"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export as CSV
+              </button>
+              <button
+                onClick={() => handleExport('xlsx')}
+                className="w-full px-4 py-2 text-left hover:bg-[var(--bg-hover)] flex items-center gap-2 text-[var(--text-primary)]"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Export as Excel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Info Banner */}
+      {!loading && contacts.length > 0 && (
+        <div className="card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-3">
+            <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-[var(--text-primary)] mb-1">
+                Building Your Customer Relationships
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Every contact represents a potential customer who engaged with your content.
+                Use this data to understand your audience, follow up with interested leads, and build lasting relationships.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search & Filter */}
       <div className="card">
@@ -167,10 +217,13 @@ export const ContactsPage = () => {
         <div className="card text-center py-12">
           <User className="w-16 h-16 text-[var(--text-tertiary)] mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
-            No contacts found
+            {searchQuery ? 'No contacts match your search' : 'Start Building Your Customer Database'}
           </h3>
-          <p className="text-[var(--text-secondary)]">
-            Contacts will appear here as your automations interact with users
+          <p className="text-[var(--text-secondary)] max-w-md mx-auto">
+            {searchQuery
+              ? 'Try adjusting your search terms to find the contact you\'re looking for'
+              : 'Contacts will automatically appear here when your automations interact with followers. Each engagement is a potential customer relationship.'
+            }
           </p>
         </div>
       )}

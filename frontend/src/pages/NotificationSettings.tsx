@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api } from '../utils/api';
 
 type PreferenceKey = 'weekly_reports' | 'automation_alerts' | 'dm_failures' | 'account_issues';
 

@@ -18,11 +18,12 @@ class User(AbstractUser):
     subscription_end_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    onboarding_completed = models.BooleanField(default=False, help_text="Whether user has completed onboarding flow")
     email_preferences = models.JSONField(
-    default=dict,
-    blank=True,
-    help_text="Email notification preferences"
-)
+        default=dict,
+        blank=True,
+        help_text="Email notification preferences"
+    )
 
     # Default preferences:
     {
