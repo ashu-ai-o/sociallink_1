@@ -90,27 +90,63 @@ export const SettingsPopup: React.FC = () => {
   // ============================================================================
   // INSTAGRAM OAUTH HANDLER
   // ============================================================================
-  
-  const handleConnectInstagram = () => {
-    // Open OAuth popup
-    const width = 600;
-    const height = 700;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
 
-    const popup = window.open(
-      `${import.meta.env.VITE_API_URL}/auth/instagram/oauth/`,
-      'Instagram OAuth',
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
+  const handleConnectInstagram = async () => {
+    try {
+      // Call backend API with JWT auth to get the OAuth URL
+      const response = await api.initiateInstagramOAuth();
+      const oauthUrl = response.oauth_url;
 
-    // Listen for OAuth completion
-    const checkPopup = setInterval(() => {
-      if (!popup || popup.closed) {
-        clearInterval(checkPopup);
-        fetchInstagramAccounts(); // Refresh list
+      if (!oauthUrl) {
+        toast.error('Failed to get OAuth URL');
+        return;
       }
-    }, 500);
+
+      // Open the Facebook OAuth URL in a popup
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+
+      const popup = window.open(
+        oauthUrl,
+        'Instagram OAuth',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      // Listen for postMessage from the callback popup
+      const handleMessage = (event: MessageEvent) => {
+        // Verify origin matches our frontend URL
+        if (event.origin !== window.location.origin && event.data?.type !== 'instagram_oauth') {
+          return;
+        }
+
+        if (event.data?.type === 'instagram_oauth') {
+          window.removeEventListener('message', handleMessage);
+
+          if (event.data.status === 'success') {
+            toast.success('Instagram account connected!');
+          } else {
+            toast.error(`Failed to connect Instagram: ${event.data.message || 'Unknown error'}`);
+          }
+
+          fetchInstagramAccounts(); // Refresh list
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Fallback: also poll for popup closure in case postMessage fails
+      const checkPopup = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(checkPopup);
+          window.removeEventListener('message', handleMessage);
+          fetchInstagramAccounts(); // Refresh list
+        }
+      }, 1000);
+    } catch (error) {
+      toast.error('Failed to start Instagram connection');
+    }
   };
 
   const handleDisconnectInstagram = async (accountId: string) => {

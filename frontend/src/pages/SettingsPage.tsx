@@ -35,8 +35,49 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleConnectInstagram = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/instagram/oauth/`;
+  const handleConnectInstagram = async () => {
+    try {
+      const response = await api.initiateInstagramOAuth();
+      const oauthUrl = response.oauth_url;
+      if (!oauthUrl) {
+        toast.error('Failed to get OAuth URL');
+        return;
+      }
+
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+
+      const popup = window.open(
+        oauthUrl,
+        'Instagram OAuth',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'instagram_oauth') {
+          window.removeEventListener('message', handleMessage);
+          if (event.data.status === 'success') {
+            toast.success('Instagram account connected!');
+          } else {
+            toast.error('Failed to connect Instagram');
+          }
+          loadAccounts();
+        }
+      };
+      window.addEventListener('message', handleMessage);
+
+      const checkPopup = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(checkPopup);
+          window.removeEventListener('message', handleMessage);
+          loadAccounts();
+        }
+      }, 1000);
+    } catch (error) {
+      toast.error('Failed to start Instagram connection');
+    }
   };
 
   const handleRefreshStats = async (accountId: string) => {

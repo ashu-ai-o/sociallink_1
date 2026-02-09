@@ -27,8 +27,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import redirect
 from django.conf import settings
+from django.core.cache import cache
+from django.http import HttpResponse
 import requests
+import secrets
 from datetime import datetime, timedelta
+from urllib.parse import urlencode
 from .models import InstagramAccount
 import logging
 
@@ -260,17 +264,20 @@ class UserViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def instagram_oauth_initiate(request):
     """
-    Step 1: Redirect user to Facebook OAuth for Instagram permissions
-    
+    Step 1: Generate Facebook OAuth URL for Instagram permissions
+
     GET /api/auth/instagram/oauth/
-    
-    This opens Instagram OAuth popup with required permissions
+
+    Returns JSON with the OAuth URL so the frontend can open it in a popup.
+    The frontend must call this with JWT auth header, then open the returned
+    URL in a popup window.
     """
-    
-    # Facebook App credentials (add to settings.py)
+
     facebook_app_id = settings.FACEBOOK_APP_ID
-    redirect_uri = f"{settings.FRONTEND_URL}/auth/instagram/callback"
-    
+    # redirect_uri must point to the BACKEND callback endpoint
+    backend_url = settings.BACKEND_URL.rstrip('/')
+    redirect_uri = f"{backend_url}/api/auth/instagram/callback/"
+
     # Required Instagram permissions
     scope = ",".join([
         "instagram_basic",  # Basic profile info
@@ -279,92 +286,134 @@ def instagram_oauth_initiate(request):
         "pages_show_list",  # List Facebook pages
         "pages_read_engagement",  # Read page data
     ])
-    
-    # Store user ID in state for security
-    state = f"user_{request.user.id}"
-    
-    # Build OAuth URL
-    oauth_url = (
-        f"https://www.facebook.com/v21.0/dialog/oauth?"
-        f"client_id={facebook_app_id}"
-        f"&redirect_uri={redirect_uri}"
-        f"&scope={scope}"
-        f"&response_type=code"
-        f"&state={state}"
+
+    # Generate a cryptographically secure random state token
+    # Store the user association in cache (expires in 10 minutes)
+    state_token = secrets.token_urlsafe(32)
+    cache.set(
+        f"instagram_oauth_state:{state_token}",
+        str(request.user.id),
+        timeout=600  # 10 minutes
     )
-    
+
+    # Build OAuth URL
+    oauth_params = urlencode({
+        'client_id': facebook_app_id,
+        'redirect_uri': redirect_uri,
+        'scope': scope,
+        'response_type': 'code',
+        'state': state_token,
+    })
+    oauth_url = f"https://www.facebook.com/v21.0/dialog/oauth?{oauth_params}"
+
     logger.info(f"Initiating Instagram OAuth for user {request.user.id}")
-    
-    return redirect(oauth_url)
+
+    return Response({'oauth_url': oauth_url})
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def instagram_oauth_callback(request):
     """
     Step 2: Handle OAuth callback from Facebook
-    
-    GET /api/auth/instagram/callback?code=...&state=...
-    
-    This exchanges the code for access token and saves Instagram account
+
+    GET /api/auth/instagram/callback/?code=...&state=...
+
+    This exchanges the code for access token and saves Instagram account.
+    Returns an HTML page that notifies the parent window and auto-closes.
     """
-    
+
     code = request.GET.get('code')
     state = request.GET.get('state')
     error = request.GET.get('error')
-    
-    # Handle errors
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+
+    def _popup_response(success, message=''):
+        """Return HTML that notifies the opener window and closes the popup."""
+        status_val = 'success' if success else 'error'
+        return HttpResponse(
+            f"""<!DOCTYPE html><html><body><script>
+            if (window.opener) {{
+                window.opener.postMessage({{
+                    type: 'instagram_oauth',
+                    status: '{status_val}',
+                    message: '{message}'
+                }}, '{frontend_url}');
+            }}
+            window.close();
+            </script><p>{'Connected! This window will close.' if success else f'Error: {message}. Closing...'}</p></body></html>""",
+            content_type='text/html'
+        )
+
+    # Handle errors from Facebook
     if error:
         error_description = request.GET.get('error_description', 'Unknown error')
         logger.error(f"OAuth error: {error} - {error_description}")
-        return redirect(f"{settings.FRONTEND_URL}/dashboard?error=oauth_failed")
-    
+        return _popup_response(False, 'oauth_failed')
+
     if not code:
         logger.error("No code received from OAuth")
-        return redirect(f"{settings.FRONTEND_URL}/dashboard?error=no_code")
-    
-    # Verify state (extract user_id)
+        return _popup_response(False, 'no_code')
+
+    if not state:
+        logger.error("No state received from OAuth")
+        return _popup_response(False, 'invalid_state')
+
+    # Verify state token from cache (CSRF protection)
+    cache_key = f"instagram_oauth_state:{state}"
+    user_id = cache.get(cache_key)
+    if not user_id:
+        logger.error(f"Invalid or expired state token: {state}")
+        return _popup_response(False, 'invalid_state')
+
+    # Delete the state token so it cannot be reused
+    cache.delete(cache_key)
+
     try:
-        user_id = state.split('_')[1]
         user = User.objects.get(id=user_id)
-    except (IndexError, User.DoesNotExist):
-        logger.error(f"Invalid state: {state}")
-        return redirect(f"{settings.FRONTEND_URL}/dashboard?error=invalid_state")
-    
+    except User.DoesNotExist:
+        logger.error(f"User not found for id: {user_id}")
+        return _popup_response(False, 'invalid_state')
+
     # Exchange code for access token
     try:
         token_data = exchange_code_for_token(code)
-        
+
         if not token_data:
             raise Exception("Failed to exchange code for token")
-        
-        # Get Instagram account info
+
+        # Get Instagram account info (includes page_access_token)
         instagram_data = get_instagram_account_info(token_data['access_token'])
-        
+
         if not instagram_data:
             raise Exception("Failed to fetch Instagram account info")
-        
-        # Save to database
+
+        # Save to database using page access token (required for Graph API)
         instagram_account = save_instagram_account(
             user=user,
-            access_token=token_data['access_token'],
-            expires_in=token_data.get('expires_in', 5183944),  # ~60 days default
+            access_token=instagram_data['page_access_token'],
+            expires_in=token_data.get('expires_in', 5183944),  # ~60 days
             instagram_data=instagram_data
         )
-        
-        logger.info(f"Successfully connected Instagram account @{instagram_account.username} for user {user.id}")
-        
-        return redirect(f"{settings.FRONTEND_URL}/dashboard?instagram_connected=true")
-        
+
+        logger.info(
+            f"Successfully connected Instagram account "
+            f"@{instagram_account.username} for user {user.id}"
+        )
+
+        return _popup_response(True)
+
     except Exception as e:
         logger.error(f"OAuth callback error: {str(e)}")
-        return redirect(f"{settings.FRONTEND_URL}/dashboard?error=connection_failed")
+        return _popup_response(False, 'connection_failed')
 
 
 def exchange_code_for_token(code):
     """
     Exchange authorization code for access token
     """
-    redirect_uri = f"{settings.FRONTEND_URL}/auth/instagram/callback"
+    backend_url = settings.BACKEND_URL.rstrip('/')
+    redirect_uri = f"{backend_url}/api/auth/instagram/callback/"
     
     url = "https://graph.facebook.com/v21.0/oauth/access_token"
     params = {
@@ -484,16 +533,20 @@ def get_instagram_account_info(access_token):
 
 def save_instagram_account(user, access_token, expires_in, instagram_data):
     """
-    Save or update Instagram account in database
+    Save or update Instagram account in database.
+
+    Args:
+        access_token: The page-level access token needed for Instagram Graph API
+                      (DMs, comment replies, etc.)
     """
     expires_at = datetime.now() + timedelta(seconds=expires_in)
-    
+
     instagram_account, created = InstagramAccount.objects.update_or_create(
         instagram_user_id=instagram_data['instagram_user_id'],
         defaults={
             'user': user,
             'username': instagram_data['username'],
-            'access_token': access_token,  # Store the long-lived token
+            'access_token': access_token,  # Page access token for Graph API calls
             'token_expires_at': expires_at,
             'page_id': instagram_data['page_id'],
             'profile_picture_url': instagram_data.get('profile_picture_url', ''),
@@ -708,7 +761,6 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
             'count': expiring_soon.count()
         })
     
-
 
 
 
