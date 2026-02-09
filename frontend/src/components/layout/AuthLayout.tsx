@@ -1,8 +1,4 @@
-// ============================================================================
-// src/components/Layout/AuthLayout.tsx
-
-import { Link } from 'react-router-dom';
-import { Instagram, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 
 interface AuthLayoutProps {
@@ -13,91 +9,38 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] flex">
-      {/* Left Side - Hero */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-600 to-pink-600 p-12 flex-col justify-between text-white">
-        <div>
-          <Link to="/" className="flex items-center gap-2 mb-12">
-            <Instagram className="w-8 h-8" />
-            <span className="text-2xl font-bold">LinkPlease Pro</span>
-          </Link>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 dark:from-purple-900 dark:via-indigo-900 dark:to-blue-900">
+        {/* Animated orbs */}
+        <div className="absolute top-0 left-0 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-          <h1 className="text-5xl font-bold mb-6">
-            Automate Your Instagram DMs with AI
-          </h1>
-          <p className="text-xl opacity-90 mb-8">
-            Turn comments into conversations. Send personalized DMs automatically when users engage with your posts.
-          </p>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-2xl">
-                ✓
-              </div>
-              <div>
-                <div className="font-semibold">AI-Powered Messages</div>
-                <div className="text-sm opacity-80">
-                  Claude AI personalizes every DM
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-2xl">
-                ✓
-              </div>
-              <div>
-                <div className="font-semibold">Instant Responses</div>
-                <div className="text-sm opacity-80">
-                  Reply to comments in seconds
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-2xl">
-                ✓
-              </div>
-              <div>
-                <div className="font-semibold">Increase Conversions</div>
-                <div className="text-sm opacity-80">
-                  67% higher conversion rates
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-sm opacity-75">
-          Trusted by 10,000+ Instagram businesses worldwide
-        </div>
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                           linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }}></div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 relative">
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="absolute top-8 right-8 p-3 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors"
-        >
-          {theme === 'light' ? (
-            <Moon className="w-5 h-5" />
-          ) : (
-            <Sun className="w-5 h-5" />
-          )}
-        </button>
+      {/* Theme Toggle */}
+      <button
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 sm:top-8 sm:right-8 p-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white transition-all z-20"
+        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+      >
+        {theme === 'light' ? (
+          <Moon className="w-5 h-5" />
+        ) : (
+          <Sun className="w-5 h-5" />
+        )}
+      </button>
 
-        {/* Mobile Logo */}
-        <div className="lg:hidden absolute top-8 left-8">
-          <Link to="/" className="flex items-center gap-2">
-            <Instagram className="w-6 h-6 text-[var(--accent-primary)]" />
-            <span className="text-lg font-bold text-[var(--text-primary)]">
-              LinkPlease
-            </span>
-          </Link>
-        </div>
-
-        <div className="w-full max-w-md">
-          {children}
-        </div>
+      {/* Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        {children}
       </div>
     </div>
   );

@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterField(
             model_name='automation',
-            name='dm_message',
+            name='DmMessage',
             field=models.TextField(help_text='Private message sent via DM (can include links)'),
         ),
         migrations.AlterField(

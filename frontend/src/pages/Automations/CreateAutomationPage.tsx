@@ -32,7 +32,7 @@ export const CreateAutomationPage = () => {
     trigger_match_type: 'contains' as 'exact' | 'contains' | 'any',
     enable_comment_reply: true,
     comment_reply_message: 'Sent! Check your DM',
-    dm_message: '',
+    DmMessage: '',
     dm_buttons: [{ text: '', url: '' }],
     use_ai_enhancement: false,
     ai_context: '',
@@ -75,7 +75,7 @@ export const CreateAutomationPage = () => {
       case 2:
         return !formData.enable_comment_reply || formData.comment_reply_message.trim();
       case 3:
-        return formData.dm_message.trim();
+        return formData.DmMessage.trim();
       default:
         return true;
     }
@@ -365,8 +365,8 @@ const Step3 = ({ formData, setFormData }: any) => (
         rows={6}
         className="w-full px-4 py-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 dark:focus:ring-white transition-all resize-none"
         placeholder="Hey! Thanks for your interest. Here's the link you requested..."
-        value={formData.dm_message}
-        onChange={(e) => setFormData({ ...formData, dm_message: e.target.value })}
+        value={formData.DmMessage}
+        onChange={(e) => setFormData({ ...formData, DmMessage: e.target.value })}
       />
       <p className="text-xs text-neutral-500 mt-2">
         Be personal and helpful. Avoid spam-like language.
@@ -455,7 +455,7 @@ const Step4 = ({ formData }: any) => (
       <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
         <div className="text-sm font-medium text-neutral-500 mb-1">DM Message</div>
         <div className="text-neutral-900 dark:text-white whitespace-pre-wrap">
-          {formData.dm_message}
+          {formData.DmMessage}
         </div>
       </div>
     </div>

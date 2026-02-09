@@ -59,13 +59,13 @@ export const PricingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)]">
+    <div className="min-h-screen bg-[neutral-50 dark:bg-neutral-800]">
       {/* Header */}
-      <div className="border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+      <div className="border-b border-[neutral-200 dark:border-neutral-800] bg-[white dark:bg-neutral-900]">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-2 text-[neutral-600 dark:text-neutral-400] hover:text-[neutral-900 dark:text-white]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -76,21 +76,21 @@ export const PricingPage = () => {
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Hero */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-[var(--text-primary)] mb-4">
+          <h1 className="text-5xl font-bold text-[neutral-900 dark:text-white] mb-4">
             Simple, Transparent Pricing
           </h1>
-          <p className="text-xl text-[var(--text-secondary)] mb-8">
+          <p className="text-xl text-[neutral-600 dark:text-neutral-400] mb-8">
             Choose the perfect plan for your Instagram automation needs
           </p>
 
           {/* Billing Toggle */}
-          <div className="inline-flex items-center gap-4 p-2 bg-[var(--bg-primary)] rounded-lg border border-[var(--border-primary)]">
+          <div className="inline-flex items-center gap-4 p-2 bg-[white dark:bg-neutral-900] rounded-lg border border-[neutral-200 dark:border-neutral-800]">
             <button
               onClick={() => setBilling('monthly')}
               className={`px-6 py-2 rounded-lg font-medium transition-all ${
                 billing === 'monthly'
-                  ? 'bg-[var(--accent-primary)] text-white'
-                  : 'text-[var(--text-secondary)]'
+                  ? 'bg-[neutral-900 dark:text-white] text-white'
+                  : 'text-[neutral-600 dark:text-neutral-400]'
               }`}
             >
               Monthly
@@ -99,8 +99,8 @@ export const PricingPage = () => {
               onClick={() => setBilling('annual')}
               className={`px-6 py-2 rounded-lg font-medium transition-all ${
                 billing === 'annual'
-                  ? 'bg-[var(--accent-primary)] text-white'
-                  : 'text-[var(--text-secondary)]'
+                  ? 'bg-[neutral-900 dark:text-white] text-white'
+                  : 'text-[neutral-600 dark:text-neutral-400]'
               }`}
             >
               Annual
@@ -118,35 +118,35 @@ export const PricingPage = () => {
               key={plan.name}
               className={`card relative ${
                 plan.highlighted
-                  ? 'ring-2 ring-[var(--accent-primary)] shadow-xl scale-105'
+                  ? 'ring-2 ring-[neutral-900 dark:text-white] shadow-xl scale-105'
                   : ''
               }`}
             >
               {plan.highlighted && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[var(--accent-primary)] text-white text-sm font-medium rounded-full">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[neutral-900 dark:text-white] text-white text-sm font-medium rounded-full">
                   Most Popular
                 </div>
               )}
 
               <div className="text-center mb-6">
-                <div className="inline-flex p-3 rounded-xl bg-[var(--accent-light)] text-[var(--accent-primary)] mb-4">
+                <div className="inline-flex p-3 rounded-xl bg-[var(--accent-light)] text-[neutral-900 dark:text-white] mb-4">
                   {plan.icon}
                 </div>
-                <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+                <h3 className="text-2xl font-bold text-[neutral-900 dark:text-white] mb-2">
                   {plan.name}
                 </h3>
-                <p className="text-[var(--text-secondary)]">{plan.description}</p>
+                <p className="text-[neutral-600 dark:text-neutral-400]">{plan.description}</p>
               </div>
 
               <div className="text-center mb-6">
-                <div className="text-5xl font-bold text-[var(--text-primary)] mb-2">
+                <div className="text-5xl font-bold text-[neutral-900 dark:text-white] mb-2">
                   ${plan.price[billing]}
-                  <span className="text-xl text-[var(--text-secondary)] font-normal">
+                  <span className="text-xl text-[neutral-600 dark:text-neutral-400] font-normal">
                     /{billing === 'monthly' ? 'mo' : 'yr'}
                   </span>
                 </div>
                 {billing === 'annual' && plan.price.annual > 0 && (
-                  <p className="text-sm text-[var(--text-tertiary)]">
+                  <p className="text-sm text-[neutral-500]">
                     ${(plan.price.annual / 12).toFixed(2)}/mo billed annually
                   </p>
                 )}
@@ -156,8 +156,8 @@ export const PricingPage = () => {
                 to={plan.name === 'Enterprise' ? '/contact' : '/auth'}
                 className={`block w-full text-center py-3 px-6 rounded-lg font-medium transition-all mb-6 ${
                   plan.highlighted
-                    ? 'bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-hover)]'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                    ? 'bg-[neutral-900 dark:text-white] text-white hover:bg-[var(--accent-hover)]'
+                    : 'bg-[neutral-50 dark:bg-neutral-800] text-[neutral-900 dark:text-white] hover:bg-[neutral-50 dark:hover:bg-neutral-800]'
                 }`}
               >
                 {plan.cta}
@@ -167,7 +167,7 @@ export const PricingPage = () => {
                 {plan.features.map((feature) => (
                   <li
                     key={feature}
-                    className="flex items-start gap-3 text-[var(--text-secondary)]"
+                    className="flex items-start gap-3 text-[neutral-600 dark:text-neutral-400]"
                   >
                     <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <span>{feature}</span>
@@ -180,7 +180,7 @@ export const PricingPage = () => {
 
         {/* FAQ */}
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-[var(--text-primary)] text-center mb-8">
+          <h2 className="text-3xl font-bold text-[neutral-900 dark:text-white] text-center mb-8">
             Frequently Asked Questions
           </h2>
           <div className="space-y-4">
@@ -209,13 +209,13 @@ export const PricingPage = () => {
 
 const FAQItem = ({ question, answer }: { question: string; answer: string }) => (
   <details className="card group">
-    <summary className="cursor-pointer font-medium text-[var(--text-primary)] list-none flex items-center justify-between">
+    <summary className="cursor-pointer font-medium text-[neutral-900 dark:text-white] list-none flex items-center justify-between">
       <span>{question}</span>
-      <span className="text-[var(--text-tertiary)] group-open:rotate-180 transition-transform">
+      <span className="text-[neutral-500] group-open:rotate-180 transition-transform">
         ▼
       </span>
     </summary>
-    <p className="mt-4 text-[var(--text-secondary)]">{answer}</p>
+    <p className="mt-4 text-[neutral-600 dark:text-neutral-400]">{answer}</p>
   </details>
 );
 

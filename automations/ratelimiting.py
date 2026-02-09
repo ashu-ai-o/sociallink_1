@@ -1,6 +1,6 @@
 """
 Instagram API Rate Limiting with Queue System
-Handles 200 DMs/hour limit - EXACTLY like LinkPlease does it!
+Handles 200 DMs/hour limit - EXACTLY like DmMe does it!
 
 This is CRITICAL for production - without this, viral posts break your app!
 """

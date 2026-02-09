@@ -155,7 +155,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"  # optional for production
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': config('DB_NAME', default='linkplease_db'),
+#         'NAME': config('DB_NAME', default='DmMe_db'),
 #         'USER': config('DB_USER', default='postgres'),
 #         'PASSWORD': config('DB_PASSWORD'),
 #         'HOST': config('DB_HOST', default='localhost'),
@@ -332,7 +332,7 @@ CSRF_TRUSTED_ORIGINS = [
 # OpenRouter API (unified gateway for all AI models)
 OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')
 OPENROUTER_API_URL = 'https://openrouter.ai/api/v1'
-OPENROUTER_SITE_URL = config('SITE_URL', default='https://linkplease.co')
+OPENROUTER_SITE_URL = config('SITE_URL', default='https://DmMe.co')
 
 # Model fallback chain (in priority order)
 # OpenRouter provides access to all these models through one API
@@ -472,7 +472,7 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='LinkPlease <noreply@linkplease.co>')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='DmMe <noreply@DmMe.co>')
 
 
 

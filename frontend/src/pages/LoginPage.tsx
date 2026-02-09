@@ -30,7 +30,7 @@ export const LoginPage: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Instagram className="w-10 h-10 text-purple-600" />
-            <h1 className="text-3xl font-bold text-gray-900">LinkPlease Pro</h1>
+            <h1 className="text-3xl font-bold text-gray-900">DmMe Pro</h1>
           </div>
           <p className="text-gray-600">
             AI-powered Instagram automation

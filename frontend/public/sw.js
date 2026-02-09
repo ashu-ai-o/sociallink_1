@@ -1,5 +1,5 @@
 const serviceWorkerCode = 
-const CACHE_NAME = 'linkplease-v1';
+const CACHE_NAME = 'DmMe-v1';
 const urlsToCache = [
   '/',
   '/index.html',

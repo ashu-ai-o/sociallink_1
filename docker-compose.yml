@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=linkplease_db
+      - POSTGRES_DB=linkdb
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=yourpassword
     ports:
@@ -35,13 +35,13 @@ services:
   # Django + Channels (ASGI with Daphne)
   web:
     build: .
-    command: daphne -b 0.0.0.0 -p 8000 linkplease.asgi:application
+    command: daphne -b 0.0.0.0 -p 8000 link.asgi:application
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/linkplease_db
+      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/DmMe_db
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
     depends_on:
@@ -57,11 +57,11 @@ services:
   # Celery Workers (Background Tasks)
   celery_worker:
     build: .
-    command: celery -A linkplease worker --loglevel=info --concurrency=10 -P gevent
+    command: celery -A DmMe worker --loglevel=info --concurrency=10 -P gevent
     volumes:
       - .:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/linkplease_db
+      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/DmMe_db
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
     depends_on:
@@ -77,11 +77,11 @@ services:
   # Celery Beat (Scheduler)
   celery_beat:
     build: .
-    command: celery -A linkplease beat --loglevel=info
+    command: celery -A DmMe beat --loglevel=info
     volumes:
       - .:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/linkplease_db
+      - DATABASE_URL=postgresql://postgres:yourpassword@postgres:5432/DmMe_db
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
     depends_on:
@@ -158,7 +158,7 @@ upstream websocket_backend {
 
 server {
     listen 80;
-    server_name linkplease.co;
+    server_name DmMe.co;
 
     client_max_body_size 10M;
 
@@ -168,7 +168,7 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name linkplease.co;
+    server_name DmMe.co;
 
     ssl_certificate /etc/nginx/ssl/cert.pem;
     ssl_certificate_key /etc/nginx/ssl/key.pem;
@@ -241,7 +241,7 @@ docker-compose up -d --scale web=5  # 5 web instances
 docker-compose exec redis redis-cli INFO clients
 
 # 8. Monitor Celery tasks
-docker-compose exec celery_worker celery -A linkplease inspect active
+docker-compose exec celery_worker celery -A DmMe inspect active
 
 # PRODUCTION SCALING FOR 10K+ USERS:
 # - 5-10 web instances (ASGI/Daphne)

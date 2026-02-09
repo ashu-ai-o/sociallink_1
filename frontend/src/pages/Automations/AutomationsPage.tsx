@@ -153,9 +153,17 @@ export const AutomationsPage = () => {
       ) : filteredAutomations.length > 0 ? (
         <div className="space-y-4">
           {filteredAutomations.map((automation) => (
-            <div
-              key={automation.id}
-              className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 hover:shadow-soft-lg transition-all duration-200 group"
+            <div key={automation.id} className="group relative">
+              {/* 3D floating shadow effect */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${
+                  automation.is_active
+                    ? 'from-green-500/20 to-emerald-500/20'
+                    : 'from-neutral-500/10 to-neutral-500/10'
+                } rounded-2xl blur-xl transform translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition-all duration-300`}
+              ></div>
+
+              <div className="relative bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 hover:shadow-2xl transition-all duration-300 group-hover:-translate-y-1"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -177,7 +185,7 @@ export const AutomationsPage = () => {
                     )}
                   </div>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
-                    {automation.dm_message.substring(0, 120)}...
+                    {automation.DmMessage.substring(0, 120)}...
                   </p>
                 </div>
 
@@ -256,6 +264,7 @@ export const AutomationsPage = () => {
                   <Trash2 className="w-4 h-4" />
                   Delete
                 </button>
+              </div>
               </div>
             </div>
           ))}

@@ -24,12 +24,12 @@ export const ResetPasswordPage = () => {
     return (
       <div className="text-center slide-in-up">
         <div className="w-16 h-16 rounded-full bg-[var(--accent-light)] flex items-center justify-center mx-auto mb-6">
-          <Mail className="w-8 h-8 text-[var(--accent-primary)]" />
+          <Mail className="w-8 h-8 text-[neutral-900 dark:text-white]" />
         </div>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+        <h2 className="text-2xl font-bold text-[neutral-900 dark:text-white] mb-2">
           Check your email
         </h2>
-        <p className="text-[var(--text-secondary)] mb-8">
+        <p className="text-[neutral-600 dark:text-neutral-400] mb-8">
           We've sent a password reset link to <strong>{email}</strong>
         </p>
         <Link to="/auth" className="btn btn-primary">
@@ -43,16 +43,16 @@ export const ResetPasswordPage = () => {
     <div className="slide-in-up">
       <Link
         to="/auth"
-        className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] mb-8"
+        className="inline-flex items-center gap-2 text-sm text-[neutral-600 dark:text-neutral-400] hover:text-[neutral-900 dark:text-white] mb-8"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Sign In
       </Link>
 
-      <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+      <h2 className="text-3xl font-bold text-[neutral-900 dark:text-white] mb-2">
         Reset your password
       </h2>
-      <p className="text-[var(--text-secondary)] mb-8">
+      <p className="text-[neutral-600 dark:text-neutral-400] mb-8">
         Enter your email and we'll send you a reset link
       </p>
 

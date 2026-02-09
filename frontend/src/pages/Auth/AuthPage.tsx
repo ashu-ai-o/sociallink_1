@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks';
 import { login, register } from '../../store/slices/authSlice';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
-import { Mail, Lock, User, Chrome, ArrowRight, Check, Sparkles } from 'lucide-react';
+import { Mail, Lock, User, Instagram, ArrowRight } from 'lucide-react';
 
 export const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -26,14 +26,12 @@ export const AuthPage = () => {
       try {
         await dispatch(login({ email: formData.email, password: formData.password })).unwrap();
 
-        // Check onboarding status
         const profile = await api.getUserProfile();
         const onboardingCompleted = profile.onboarding_completed || false;
         localStorage.setItem('onboarding_completed', String(onboardingCompleted));
 
         toast.success('Welcome back!');
 
-        // Redirect based on onboarding status
         if (!onboardingCompleted) {
           navigate('/onboarding');
         } else {
@@ -57,7 +55,6 @@ export const AuthPage = () => {
           })
         ).unwrap();
 
-        // New users always need onboarding
         localStorage.setItem('onboarding_completed', 'false');
 
         toast.success('Account created successfully!');
@@ -68,276 +65,207 @@ export const AuthPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    toast('Google OAuth coming soon!');
-  };
-
-  const benefits = [
-    'Automate Instagram DM responses',
-    'AI-powered message personalization',
-    'Real-time analytics & insights',
-    'Unlimited automations & contacts'
-  ];
-
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
+    <div className="w-full max-w-md mx-auto">
+      {/* Logo */}
+      <div className="text-center mb-8">
+        <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
+          <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 group-hover:scale-110 transition-transform">
+            <Instagram className="w-7 h-7 text-white" />
+          </div>
+          <span className="text-3xl font-bold text-white">
+            DmMe
+          </span>
+        </Link>
+      </div>
 
-        {/* Left Side - Branding & Benefits */}
-        <div className="hidden lg:block space-y-8 fade-in">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium">
-              <Sparkles className="w-4 h-4" />
-              Welcome to LinkPlease
-            </div>
-            <h1 className="text-5xl font-bold text-[var(--text-primary)] leading-tight">
-              Transform Your<br />
-              Instagram Engagement
-            </h1>
-            <p className="text-xl text-[var(--text-secondary)] leading-relaxed">
-              Automate responses, boost conversions, and never miss a customer opportunity.
+      {/* 3D Auth Card */}
+      <div className="relative">
+        {/* 3D shadow layers */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
+
+        <div className="relative bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+          {/* Tab Switcher */}
+          <div className="flex gap-2 mb-8 p-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-2xl">
+            <button
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 ${
+                isLogin
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg scale-105'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 ${
+                !isLogin
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg scale-105'
+                  : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-2">
+              {isLogin ? 'Welcome back' : 'Create your account'}
+            </h2>
+            <p className="text-neutral-600 dark:text-neutral-400">
+              {isLogin
+                ? 'Sign in to access your dashboard'
+                : 'Start automating your Instagram engagement'}
             </p>
           </div>
 
-          <div className="space-y-4">
-            {benefits.map((benefit, index) => (
-              <div
-                key={index}
-                className={`flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover-lift stagger-${index + 1} fade-in`}
-              >
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                  <Check className="w-5 h-5 text-white" />
-                </div>
-                <p className="text-[var(--text-primary)] font-medium">{benefit}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-8 pt-8">
-            <div>
-              <div className="text-3xl font-bold text-[var(--text-primary)]">10K+</div>
-              <div className="text-sm text-[var(--text-secondary)]">Active Users</div>
-            </div>
-            <div className="w-px h-12 bg-gray-300 dark:bg-gray-700"></div>
-            <div>
-              <div className="text-3xl font-bold text-[var(--text-primary)]">1M+</div>
-              <div className="text-sm text-[var(--text-secondary)]">Messages Sent</div>
-            </div>
-            <div className="w-px h-12 bg-gray-300 dark:bg-gray-700"></div>
-            <div>
-              <div className="text-3xl font-bold text-[var(--text-primary)]">99.9%</div>
-              <div className="text-sm text-[var(--text-secondary)]">Uptime</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side - Auth Form */}
-        <div className="w-full max-w-md mx-auto scale-in">
-          <div className="card shadow-2xl">
-            {/* Tab Switcher */}
-            <div className="flex gap-2 mb-8 p-1 bg-[var(--bg-secondary)] rounded-xl">
-              <button
-                onClick={() => setIsLogin(true)}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  isLogin
-                    ? 'bg-white dark:bg-gray-700 text-[var(--text-primary)] shadow-sm transform scale-[1.02]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => setIsLogin(false)}
-                className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
-                  !isLogin
-                    ? 'bg-white dark:bg-gray-700 text-[var(--text-primary)] shadow-sm transform scale-[1.02]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Sign Up
-              </button>
-            </div>
-
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
-                {isLogin ? 'Welcome back!' : 'Create your account'}
-              </h2>
-              <p className="text-[var(--text-secondary)]">
-                {isLogin
-                  ? 'Enter your credentials to access your account'
-                  : 'Start automating your Instagram engagement today'}
-              </p>
-            </div>
-
-            {/* Google Sign In */}
-            <button
-              onClick={handleGoogleLogin}
-              className="w-full btn btn-secondary mb-6 justify-center hover-lift"
-            >
-              <Chrome className="w-5 h-5" />
-              Continue with Google
-            </button>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[var(--border-primary)]"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white dark:bg-gray-800 text-[var(--text-tertiary)] font-medium">
-                  Or continue with email
-                </span>
-              </div>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {!isLogin && (
-                <div className="fade-in">
-                  <label className="label">Username</label>
-                  <div className="relative group">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent-primary)]" />
-                    <input
-                      type="text"
-                      className="input pl-12"
-                      placeholder="johndoe"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="label">Email address</label>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {!isLogin && (
+              <div className="animate-fadeIn">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  Username
+                </label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent-primary)]" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-purple-600 transition-colors" />
                   <input
-                    type="email"
-                    className="input pl-12"
-                    placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    type="text"
+                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
+                    placeholder="johndoe"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     required
                   />
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="label">Password</label>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                Email address
+              </label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-purple-600 transition-colors" />
+                <input
+                  type="email"
+                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                Password
+              </label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-purple-600 transition-colors" />
+                <input
+                  type="password"
+                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+
+            {!isLogin && (
+              <div className="animate-fadeIn">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                  Confirm Password
+                </label>
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent-primary)]" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 group-focus-within:text-purple-600 transition-colors" />
                   <input
                     type="password"
-                    className="input pl-12"
+                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
                     placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     required
                     minLength={6}
                   />
                 </div>
               </div>
-
-              {!isLogin && (
-                <div className="fade-in">
-                  <label className="label">Confirm Password</label>
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)] transition-colors group-focus-within:text-[var(--accent-primary)]" />
-                    <input
-                      type="password"
-                      className="input pl-12"
-                      placeholder="••••••••"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {isLogin && (
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                    <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
-                      Remember me
-                    </span>
-                  </label>
-                  <Link
-                    to="/auth/reset-password"
-                    className="text-sm font-medium text-[var(--accent-primary)] hover:text-[var(--accent-hover)] transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn btn-primary btn-lg justify-center group"
-              >
-                {loading ? (
-                  <>
-                    <div className="spinner" />
-                    <span>Please wait...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
-                    <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            {!isLogin && (
-              <p className="text-xs text-[var(--text-tertiary)] text-center mt-6 leading-relaxed">
-                By signing up, you agree to our{' '}
-                <Link to="/terms" className="text-[var(--accent-primary)] hover:text-[var(--accent-hover)] font-medium transition-colors">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-[var(--accent-primary)] hover:text-[var(--accent-hover)] font-medium transition-colors">
-                  Privacy Policy
-                </Link>
-              </p>
             )}
 
             {isLogin && (
-              <p className="text-sm text-[var(--text-secondary)] text-center mt-6">
-                Don't have an account?{' '}
-                <button
-                  onClick={() => setIsLogin(false)}
-                  className="text-[var(--accent-primary)] hover:text-[var(--accent-hover)] font-medium transition-colors"
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-purple-600 focus:ring-purple-600"
+                  />
+                  <span className="text-neutral-600 dark:text-neutral-400">Remember me</span>
+                </label>
+                <Link
+                  to="/auth/reset-password"
+                  className="font-medium bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
                 >
-                  Sign up for free
-                </button>
-              </p>
+                  Forgot password?
+                </Link>
+              </div>
             )}
-          </div>
 
-          {/* Mobile Stats */}
-          <div className="lg:hidden flex items-center justify-center gap-8 mt-8 text-center fade-in">
-            <div>
-              <div className="text-2xl font-bold text-[var(--text-primary)]">10K+</div>
-              <div className="text-xs text-[var(--text-secondary)]">Users</div>
-            </div>
-            <div className="w-px h-10 bg-gray-300 dark:bg-gray-700"></div>
-            <div>
-              <div className="text-2xl font-bold text-[var(--text-primary)]">1M+</div>
-              <div className="text-xs text-[var(--text-secondary)]">Messages</div>
-            </div>
-            <div className="w-px h-10 bg-gray-300 dark:bg-gray-700"></div>
-            <div>
-              <div className="text-2xl font-bold text-[var(--text-primary)]">99.9%</div>
-              <div className="text-xs text-[var(--text-secondary)]">Uptime</div>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium shadow-lg shadow-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {loading ? (
+                <span>Please wait...</span>
+              ) : (
+                <>
+                  <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          {!isLogin && (
+            <p className="text-xs text-neutral-500 text-center mt-6">
+              By signing up, you agree to our{' '}
+              <Link to="/terms" className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent hover:opacity-80 font-medium">
+                Terms
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy" className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent hover:opacity-80 font-medium">
+                Privacy Policy
+              </Link>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Social Proof */}
+      <div className="mt-8 text-center">
+        <p className="text-sm text-white/80 mb-4">
+          Trusted by 10,000+ Instagram businesses
+        </p>
+        <div className="flex items-center justify-center gap-8">
+          <div>
+            <div className="text-2xl font-bold text-white">10K+</div>
+            <div className="text-xs text-white/70">Active Users</div>
+          </div>
+          <div className="w-px h-10 bg-white/20"></div>
+          <div>
+            <div className="text-2xl font-bold text-white">1M+</div>
+            <div className="text-xs text-white/70">Messages Sent</div>
+          </div>
+          <div className="w-px h-10 bg-white/20"></div>
+          <div>
+            <div className="text-2xl font-bold text-white">99.9%</div>
+            <div className="text-xs text-white/70">Uptime</div>
           </div>
         </div>
       </div>

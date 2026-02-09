@@ -37,10 +37,10 @@ export const ChangePasswordPage = () => {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+      <h1 className="text-3xl font-bold text-[neutral-900 dark:text-white] mb-2">
         Change Password
       </h1>
-      <p className="text-[var(--text-secondary)] mb-8">
+      <p className="text-[neutral-600 dark:text-neutral-400] mb-8">
         Update your password to keep your account secure
       </p>
 

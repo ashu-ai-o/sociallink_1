@@ -246,13 +246,13 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     # ═══════════════════════════════════════════════════════════
     # STEP 5: Prepare DM message (with AI enhancement)
     # ═══════════════════════════════════════════════════════════
-    message = automation.dm_message
+    message = automation.DmMessage
     
     if automation.use_ai_enhancement and automation.ai_context:
         try:
             ai_service = AIServiceAsync()
             
-            result = await ai_service.enhance_dm_message(
+            result = await ai_service.enhance_DmMessage(
                 base_message=message,
                 business_context=automation.ai_context,
                 user_comment=trigger.comment_text,
@@ -287,7 +287,7 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
         
         trigger.status = 'sent'
         trigger.dm_sent_at = timezone.now()
-        trigger.dm_message_sent = message
+        trigger.DmMessage_sent = message
         await trigger.asave()
         
         # Update automation stats
@@ -339,7 +339,7 @@ def process_queued_triggers():
     Process queued triggers for all accounts
     Runs every hour via Celery Beat
     
-    This is how LinkPlease handles viral posts!
+    This is how DmMe handles viral posts!
     """
     from .models import InstagramAccount
     

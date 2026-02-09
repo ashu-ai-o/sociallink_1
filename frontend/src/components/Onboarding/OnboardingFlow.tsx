@@ -26,7 +26,7 @@ interface OnboardingSlide {
 
 const slides: OnboardingSlide[] = [
   {
-    title: 'Welcome to LinkPlease',
+    title: 'Welcome to DmMe',
     description: 'Transform your Instagram engagement into real business growth with AI-powered automation',
     icon: <Sparkles className="w-16 h-16" />,
     gradient: 'from-purple-500 to-pink-500',
@@ -88,7 +88,7 @@ export const OnboardingFlow = () => {
       setCompleting(true);
       await api.completeOnboarding();
       localStorage.setItem('onboarding_completed', 'true');
-      toast.success('Welcome to LinkPlease!');
+      toast.success('Welcome to DmMe!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to complete onboarding:', error);

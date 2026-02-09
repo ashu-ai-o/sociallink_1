@@ -2,13 +2,13 @@ import { Heart, Target, Users, Sparkles } from 'lucide-react';
 
 export const AboutPage = () => {
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)]">
+    <div className="min-h-screen bg-[neutral-50 dark:bg-neutral-800]">
       {/* Header */}
-      <div className="border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+      <div className="border-b border-[neutral-200 dark:border-neutral-800] bg-[white dark:bg-neutral-900]">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-2 text-[neutral-600 dark:text-neutral-400] hover:text-[neutral-900 dark:text-white]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -19,11 +19,11 @@ export const AboutPage = () => {
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Hero */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-[var(--text-primary)] mb-4">
+          <h1 className="text-5xl font-bold text-[neutral-900 dark:text-white] mb-4">
             We're Building the Future of Instagram Automation
           </h1>
-          <p className="text-xl text-[var(--text-secondary)] max-w-3xl mx-auto">
-            LinkPlease Pro helps businesses automate Instagram DMs with AI-powered
+          <p className="text-xl text-[neutral-600 dark:text-neutral-400] max-w-3xl mx-auto">
+            DmMe Pro helps businesses automate Instagram DMs with AI-powered
             personalization, saving time and increasing conversions.
           </p>
         </div>
@@ -34,10 +34,10 @@ export const AboutPage = () => {
             <div className="inline-flex p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-4">
               <Target className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">
+            <h2 className="text-2xl font-bold text-[neutral-900 dark:text-white] mb-4">
               Our Mission
             </h2>
-            <p className="text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-[neutral-600 dark:text-neutral-400] leading-relaxed">
               To empower businesses of all sizes to engage with their Instagram audience
               authentically and efficiently through intelligent automation. We believe
               every comment deserves a response, and every interaction should feel
@@ -49,10 +49,10 @@ export const AboutPage = () => {
             <div className="inline-flex p-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mb-4">
               <Heart className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">
+            <h2 className="text-2xl font-bold text-[neutral-900 dark:text-white] mb-4">
               Our Values
             </h2>
-            <ul className="space-y-2 text-[var(--text-secondary)]">
+            <ul className="space-y-2 text-[neutral-600 dark:text-neutral-400]">
               <li className="flex items-start gap-2">
                 <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                 <span>Authenticity in every automated interaction</span>
@@ -79,10 +79,10 @@ export const AboutPage = () => {
 
         {/* Team */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-4">
+          <h2 className="text-3xl font-bold text-[neutral-900 dark:text-white] mb-4">
             Powered by AI Excellence
           </h2>
-          <p className="text-[var(--text-secondary)] max-w-2xl mx-auto">
+          <p className="text-[neutral-600 dark:text-neutral-400] max-w-2xl mx-auto">
             We use Claude AI by Anthropic to deliver the most advanced message
             personalization technology available.
           </p>
@@ -103,7 +103,7 @@ export const AboutPage = () => {
 
 const StatCard = ({ value, label }: { value: string; label: string }) => (
   <div className="card text-center">
-    <div className="text-4xl font-bold text-[var(--accent-primary)] mb-2">{value}</div>
-    <div className="text-[var(--text-secondary)]">{label}</div>
+    <div className="text-4xl font-bold text-[neutral-900 dark:text-white] mb-2">{value}</div>
+    <div className="text-[neutral-600 dark:text-neutral-400]">{label}</div>
   </div>
 );

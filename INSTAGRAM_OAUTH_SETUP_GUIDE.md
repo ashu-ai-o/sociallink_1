@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-This guide walks you through setting up Instagram authentication for LinkPlease Pro using the official Meta API.
+This guide walks you through setting up Instagram authentication for Dm Me Pro using the official Meta API.
 
 ---
 
@@ -31,7 +31,7 @@ Visit: https://developers.facebook.com/
 1. Click **"Create App"**
 2. Select **"Business"** as app type
 3. Fill in details:
-   - **App Name**: LinkPlease Pro
+   - **App Name**: Dm Me Pro
    - **App Contact Email**: your-email@example.com
    - **Business Account**: (Optional) Select or create
 

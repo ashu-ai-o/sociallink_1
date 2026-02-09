@@ -26,7 +26,7 @@ export interface Automation {
   trigger_keywords: string[];
   trigger_match_type: 'exact' | 'contains' | 'any';
   target_posts: string[];
-  dm_message: string;
+  DmMessage: string;
   dm_buttons: Array<{ text: string; url: string }>;
   enable_comment_reply: boolean;
   comment_reply_message: string;
@@ -56,7 +56,7 @@ export interface AutomationTrigger {
   status: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped';
   failure_reason?: string;
   dm_sent_at?: string;
-  dm_message_sent: string;
+  DmMessage_sent: string;
   comment_reply_sent: boolean;
   comment_reply_text: string;
   was_ai_enhanced: boolean;

@@ -72,42 +72,38 @@ export const DashboardPage = () => {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid with 3D gradient cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
+        <GradientStatCard
           icon={<Zap className="w-5 h-5" />}
           label="Active Automations"
           value={loading ? '...' : stats.active_automations.toString()}
           subtitle={`${stats.total_automations} total`}
-          iconBgColor="bg-neutral-100 dark:bg-neutral-800"
-          iconColor="text-neutral-700 dark:text-neutral-300"
+          gradient="from-purple-500 to-indigo-500"
         />
 
-        <StatCard
+        <GradientStatCard
           icon={<Send className="w-5 h-5" />}
           label="Messages Sent"
           value={loading ? '...' : stats.total_dms_sent.toLocaleString()}
           subtitle="All time"
-          iconBgColor="bg-blue-50 dark:bg-blue-900/20"
-          iconColor="text-blue-600 dark:text-blue-400"
+          gradient="from-blue-500 to-cyan-500"
         />
 
-        <StatCard
+        <GradientStatCard
           icon={<MessageCircle className="w-5 h-5" />}
           label="Comments Processed"
           value={loading ? '...' : stats.total_triggers.toLocaleString()}
           subtitle="Total engagements"
-          iconBgColor="bg-green-50 dark:bg-green-900/20"
-          iconColor="text-green-600 dark:text-green-400"
+          gradient="from-green-500 to-emerald-500"
         />
 
-        <StatCard
+        <GradientStatCard
           icon={<Activity className="w-5 h-5" />}
           label="Today's Activity"
           value={loading ? '...' : stats.today_triggers.toString()}
           subtitle="Interactions"
-          iconBgColor="bg-amber-50 dark:bg-amber-900/20"
-          iconColor="text-amber-600 dark:text-amber-400"
+          gradient="from-amber-500 to-orange-500"
         />
       </div>
 
@@ -263,41 +259,44 @@ export const DashboardPage = () => {
   );
 };
 
-// Stat Card Component
-interface StatCardProps {
+// 3D Gradient Stat Card Component
+interface GradientStatCardProps {
   icon: React.ReactNode;
   label: string;
   value: string;
   subtitle?: string;
-  iconBgColor: string;
-  iconColor: string;
+  gradient: string;
 }
 
-const StatCard = ({
+const GradientStatCard = ({
   icon,
   label,
   value,
   subtitle,
-  iconBgColor,
-  iconColor,
-}: StatCardProps) => {
+  gradient,
+}: GradientStatCardProps) => {
   return (
-    <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 hover:shadow-soft-lg transition-all duration-200">
-      <div className={`inline-flex p-3 rounded-xl ${iconBgColor} ${iconColor} mb-4`}>
-        {icon}
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          {label}
-        </p>
-        <p className="text-3xl font-semibold text-neutral-900 dark:text-white">
-          {value}
-        </p>
-        {subtitle && (
-          <p className="text-xs text-neutral-500 dark:text-neutral-500">
-            {subtitle}
+    <div className="group relative">
+      {/* 3D shadow effect */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-20 rounded-2xl blur-xl transform translate-y-2 translate-x-1 transition-all duration-300 group-hover:translate-y-3 group-hover:translate-x-2 group-hover:opacity-30`}></div>
+
+      <div className="relative bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+        <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} text-white mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
+          {icon}
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+            {label}
           </p>
-        )}
+          <p className="text-3xl font-bold text-neutral-900 dark:text-white">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-xs text-neutral-500">
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

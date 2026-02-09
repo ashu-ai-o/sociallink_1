@@ -58,7 +58,7 @@ class AIServiceOpenRouter:
         },
     ]
     
-    def __init__(self, api_key: str, site_url: str = 'https://linkplease.co'):
+    def __init__(self, api_key: str, site_url: str = 'https://DmMe.co'):
         """
         Initialize OpenRouter client
         
@@ -76,7 +76,7 @@ class AIServiceOpenRouter:
             headers={
                 'Authorization': f'Bearer {self.api_key}',
                 'HTTP-Referer': self.site_url,
-                'X-Title': 'LinkPlease Pro',
+                'X-Title': 'DmMe Pro',
                 'Content-Type': 'application/json',
             },
             timeout=60.0,
@@ -86,7 +86,7 @@ class AIServiceOpenRouter:
             )
         )
     
-    async def enhance_dm_message(
+    async def enhance_DmMessage(
         self,
         base_message: str,
         business_context: str,
@@ -332,18 +332,18 @@ class AIServiceOpenRouterSync:
     
     MODELS = AIServiceOpenRouter.MODELS
     
-    def __init__(self, api_key: str, site_url: str = 'https://linkplease.co'):
+    def __init__(self, api_key: str, site_url: str = 'https://DmMe.co'):
         self.api_key = api_key
         self.base_url = 'https://openrouter.ai/api/v1'
         self.site_url = site_url
         self.headers = {
             'Authorization': f'Bearer {self.api_key}',
             'HTTP-Referer': self.site_url,
-            'X-Title': 'LinkPlease Pro',
+            'X-Title': 'DmMe Pro',
             'Content-Type': 'application/json',
         }
     
-    def enhance_dm_message(
+    def enhance_DmMessage(
         self,
         base_message: str,
         business_context: str,
@@ -351,7 +351,7 @@ class AIServiceOpenRouterSync:
         username: str,
         models: List[str] = None
     ) -> Dict:
-        """Synchronous version of enhance_dm_message"""
+        """Synchronous version of enhance_DmMessage"""
         prompt = self._build_enhancement_prompt(
             base_message, business_context, user_comment, username
         )
@@ -444,7 +444,7 @@ Return ONLY the enhanced message text, nothing else."""
 # Async Usage (in Celery tasks, WebSocket consumers, etc.)
 async def process_automation():
     async with AIServiceOpenRouter(api_key='your-key') as ai:
-        result = await ai.enhance_dm_message(
+        result = await ai.enhance_DmMessage(
             base_message="Thanks for your interest! Here's the link: {link}",
             business_context="We sell premium coffee subscriptions",
             user_comment="This looks amazing! Where can I buy?",
@@ -461,7 +461,7 @@ async def process_automation():
 # Sync Usage (in regular Django views)
 def my_view(request):
     ai = AIServiceOpenRouterSync(api_key='your-key')
-    result = ai.enhance_dm_message(
+    result = ai.enhance_DmMessage(
         base_message="Thanks for commenting!",
         business_context="Fitness coaching business",
         user_comment="Love this workout!",
@@ -483,7 +483,7 @@ async def process_batch():
 # Custom Model Selection
 async def use_specific_models():
     async with AIServiceOpenRouter(api_key='your-key') as ai:
-        result = await ai.enhance_dm_message(
+        result = await ai.enhance_DmMessage(
             base_message="...",
             business_context="...",
             user_comment="...",

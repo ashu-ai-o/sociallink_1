@@ -73,7 +73,7 @@ export const Sidebar = () => {
           <Link to="/dashboard" className="flex items-center gap-2">
             <Instagram className="w-6 h-6 text-[var(--accent-primary)]" />
             <span className="text-lg font-bold text-[var(--text-primary)]">
-              LinkPlease
+              DmMe
             </span>
           </Link>
           

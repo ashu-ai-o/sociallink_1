@@ -79,7 +79,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                 <Instagram className="w-5 h-5 text-white dark:text-neutral-900" />
               </div>
               <span className="text-lg font-semibold text-neutral-900 dark:text-white">
-                LinkPlease
+                DmMe
               </span>
             </Link>
 

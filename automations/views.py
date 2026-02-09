@@ -122,7 +122,7 @@ class AutomationViewSet(viewsets.ModelViewSet):
             site_url=settings.OPENROUTER_SITE_URL
         )
         
-        result = ai_service.enhance_dm_message(
+        result = ai_service.enhance_DmMessage(
             base_message=request.data.get('base_message', ''),
             business_context=request.data.get('business_context', ''),
             user_comment=request.data.get('user_comment', ''),
@@ -194,7 +194,7 @@ class AutomationViewSet(viewsets.ModelViewSet):
             trigger_keywords=automation.trigger_keywords,
             trigger_match_type=automation.trigger_match_type,
             target_posts=automation.target_posts,
-            dm_message=automation.dm_message,
+            DmMessage=automation.DmMessage,
             dm_buttons=automation.dm_buttons,
             require_follow=automation.require_follow,
             follow_check_message=automation.follow_check_message,

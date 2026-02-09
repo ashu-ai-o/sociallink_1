@@ -24,13 +24,13 @@ export const ContactUsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)]">
+    <div className="min-h-screen bg-[neutral-50 dark:bg-neutral-800]">
       {/* Header */}
-      <div className="border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+      <div className="border-b border-[neutral-200 dark:border-neutral-800] bg-[white dark:bg-neutral-900]">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-2 text-[neutral-600 dark:text-neutral-400] hover:text-[neutral-900 dark:text-white]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -40,10 +40,10 @@ export const ContactUsPage = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-[var(--text-primary)] mb-4">
+          <h1 className="text-5xl font-bold text-[neutral-900 dark:text-white] mb-4">
             Get in Touch
           </h1>
-          <p className="text-xl text-[var(--text-secondary)]">
+          <p className="text-xl text-[neutral-600 dark:text-neutral-400]">
             Have questions? We'd love to hear from you.
           </p>
         </div>
@@ -55,17 +55,17 @@ export const ContactUsPage = () => {
               <div className="inline-flex p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 mb-4">
                 <Mail className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+              <h3 className="font-semibold text-[neutral-900 dark:text-white] mb-2">
                 Email Us
               </h3>
-              <p className="text-[var(--text-secondary)] text-sm mb-2">
+              <p className="text-[neutral-600 dark:text-neutral-400] text-sm mb-2">
                 For general inquiries and support
               </p>
               <a
-                href="mailto:support@linkplease.co"
-                className="text-[var(--accent-primary)] hover:underline"
+                href="mailto:support@DmMe.co"
+                className="text-[neutral-900 dark:text-white] hover:underline"
               >
-                support@linkplease.co
+                support@DmMe.co
               </a>
             </div>
 
@@ -73,15 +73,15 @@ export const ContactUsPage = () => {
               <div className="inline-flex p-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mb-4">
                 <Phone className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+              <h3 className="font-semibold text-[neutral-900 dark:text-white] mb-2">
                 Call Us
               </h3>
-              <p className="text-[var(--text-secondary)] text-sm mb-2">
+              <p className="text-[neutral-600 dark:text-neutral-400] text-sm mb-2">
                 Monday - Friday, 9am - 6pm EST
               </p>
               <a
                 href="tel:+15551234567"
-                className="text-[var(--accent-primary)] hover:underline"
+                className="text-[neutral-900 dark:text-white] hover:underline"
               >
                 +1 (555) 123-4567
               </a>
@@ -91,10 +91,10 @@ export const ContactUsPage = () => {
               <div className="inline-flex p-3 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mb-4">
                 <MapPin className="w-6 h-6" />
               </div>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-2">
+              <h3 className="font-semibold text-[neutral-900 dark:text-white] mb-2">
                 Visit Us
               </h3>
-              <p className="text-[var(--text-secondary)] text-sm">
+              <p className="text-[neutral-600 dark:text-neutral-400] text-sm">
                 123 Innovation Street
                 <br />
                 San Francisco, CA 94103
@@ -107,7 +107,7 @@ export const ContactUsPage = () => {
           {/* Contact Form */}
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="card">
-              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
+              <h2 className="text-2xl font-bold text-[neutral-900 dark:text-white] mb-6">
                 Send us a Message
               </h2>
 
@@ -186,7 +186,7 @@ export const ContactUsPage = () => {
                   )}
                 </button>
 
-                <p className="text-sm text-[var(--text-tertiary)] text-center">
+                <p className="text-sm text-[neutral-500] text-center">
                   We typically respond within 24 hours
                 </p>
               </div>

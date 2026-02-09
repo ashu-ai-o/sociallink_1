@@ -7,7 +7,7 @@ interface Automation {
   name: string;
   trigger_type: string;
   trigger_keywords: string[];
-  dm_message: string;
+  DmMessage: string;
   is_active: boolean;
   total_triggers: number;
   total_dms_sent: number;

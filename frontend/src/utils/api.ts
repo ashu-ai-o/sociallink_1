@@ -301,14 +301,6 @@ class ApiClient {
     return response.data;
   }
 
-  async exportAnalytics(period: string = '30d') {
-    const response = await this.client.get('/analytics/dashboard/export_analytics/', {
-      params: { period },
-      responseType: 'blob',
-    });
-    return response.data;
-  }
-
   // Automation Testing
   async testAutomationTrigger(id: string, data: any) {
     const response = await this.client.post(`/automations/${id}/test_trigger/`, data);
@@ -356,4 +348,3 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
-

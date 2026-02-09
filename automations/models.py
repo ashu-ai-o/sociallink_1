@@ -61,7 +61,7 @@ class Automation(models.Model):
     # ═══════════════════════════════════════════════════════════════
     
     # DM Response settings (Private)
-    dm_message = models.TextField(
+    DmMessage = models.TextField(
         help_text="Private message sent via DM (can include links)"
     )
     dm_buttons = models.JSONField(default=list, blank=True)
@@ -134,7 +134,7 @@ class Automation(models.Model):
         self.name = InputSanitizer.sanitize_text(self.name, max_length=200)
         
         # Sanitize DM message
-        self.dm_message = InputSanitizer.sanitize_text(self.dm_message, max_length=1000)
+        self.DmMessage = InputSanitizer.sanitize_text(self.DmMessage, max_length=1000)
         
         # Sanitize AI context
         if self.ai_context:
@@ -235,7 +235,7 @@ class AutomationTrigger(models.Model):
     
     # DM details
     dm_sent_at = models.DateTimeField(null=True, blank=True)
-    dm_message_sent = models.TextField(blank=True)
+    DmMessage_sent = models.TextField(blank=True)
     
     # AI enhancement
     was_ai_enhanced = models.BooleanField(default=False)
@@ -305,7 +305,7 @@ class AutomationVariant(models.Model):
     name = models.CharField(max_length=200)
     
     # Variant settings
-    dm_message = models.TextField()
+    DmMessage = models.TextField()
     dm_buttons = models.JSONField(default=list, blank=True)
     comment_reply_message = models.CharField(
         max_length=200, 
