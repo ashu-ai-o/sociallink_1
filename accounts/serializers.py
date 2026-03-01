@@ -5,6 +5,8 @@ User and Authentication Serializers
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from .models import User, InstagramAccount
 import re
 
