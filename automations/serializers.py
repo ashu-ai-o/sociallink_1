@@ -16,6 +16,9 @@ class AutomationSerializer(serializers.ModelSerializer):
         model = Automation
         fields = '__all__'
         read_only_fields = ['id', 'total_triggers', 'total_dms_sent', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'instagram_account': {'required': False, 'allow_null': True},
+        }
 
     def validate_dm_buttons(self, value):
         """Validate button format"""

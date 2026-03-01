@@ -14,6 +14,10 @@ from datetime import timedelta
 from decouple import config
 
 from pathlib import Path
+import os
+# from dotenv import load_dotenv
+# load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,7 +35,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 
@@ -49,6 +53,7 @@ INSTALLED_APPS = [
     'channels',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'accounts',
     'automations',
@@ -166,9 +171,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"  # optional for production
 
 
 
+# Google OAuth Configuration
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '').strip()
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', '').strip()
+
+
 
 AUTH_USER_MODEL = 'accounts.User'
-
 
 
 
@@ -189,13 +198,14 @@ CHANNEL_LAYERS = {
 
 
 
-# Celery Configuration for Background Tasks
+# Celery Configuration
 CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_ALWAYS_EAGER = False  # Set to False so tasks run in background worker
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes max per task
@@ -288,10 +298,16 @@ INSTAGRAM_GRAPH_API_URL = f'https://graph.facebook.com/{INSTAGRAM_API_VERSION}'
 INSTAGRAM_MAX_DMS_PER_HOUR = 100  # Rate limit per account
 
 
-# Instagram OAuth Settings
+# Instagram OAuth (Legacy Facebook Graph API)
 FACEBOOK_APP_ID = config('FACEBOOK_APP_ID')
 FACEBOOK_APP_SECRET = config('FACEBOOK_APP_SECRET')
+
+# Instagram Platform API (New Direct Login)
+INSTAGRAM_CLIENT_ID = config('INSTAGRAM_CLIENT_ID', default='')
+INSTAGRAM_CLIENT_SECRET = config('INSTAGRAM_CLIENT_SECRET', default='')
+
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+BACKEND_URL = config('BACKEND_URL', default='http://localhost:8000')
 
 
 # Instagram Webhook Settings
@@ -500,5 +516,3 @@ SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF
 SESSION_COOKIE_AGE = 86400  # 24 hours
 
-# Additional Security
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')

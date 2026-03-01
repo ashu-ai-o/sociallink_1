@@ -52,10 +52,10 @@ def verify_webhook(request):
     
     # Verify token matches (set in Meta Developer settings)
     if mode == 'subscribe' and token == settings.INSTAGRAM_WEBHOOK_VERIFY_TOKEN:
-        logger.info('✓ Webhook verified successfully')
+        logger.info('Webhook verified successfully')
         return HttpResponse(challenge, content_type='text/plain')
     else:
-        logger.error('✗ Webhook verification failed')
+        logger.error('Webhook verification failed')
         return HttpResponse('Verification token mismatch', status=403)
 
 
@@ -72,22 +72,49 @@ def verify_signature(request):
     signature = request.headers.get('X-Hub-Signature-256', '')
     
     if not signature:
-        logger.warning('Missing signature in webhook request')
+        logger.warning('[WARNING] Webhook rejected: Missing X-Hub-Signature-256 header')
         return False
     
     # Remove 'sha256=' prefix
-    signature = signature.replace('sha256=', '')
+    signature_hash = signature.replace('sha256=', '')
     
-    # Calculate expected signature
-    expected_signature = hmac.new(
-        key=settings.FACEBOOK_APP_SECRET.encode('utf-8'),
+    # [DEBUG BYPASS] Allow 'any' signature for local testing
+    if settings.DEBUG and signature_hash == 'any':
+        logger.info('🛠️ Webhook signature bypassed (DEBUG mode + "any" signature)')
+        return True
+    
+    # Calculate expected signatures
+    # We use these settings to verify the request came from Meta/Instagram
+    fb_secret = getattr(settings, 'FACEBOOK_APP_SECRET', '')
+    ig_secret = getattr(settings, 'INSTAGRAM_CLIENT_SECRET', '')
+
+    if not fb_secret and not ig_secret:
+        logger.error('[ERROR] Configuration error: Both FACEBOOK_APP_SECRET and INSTAGRAM_CLIENT_SECRET are empty')
+        return False
+
+    expected_facebook_signature = hmac.new(
+        key=fb_secret.encode('utf-8'),
         msg=request.body,
         digestmod=hashlib.sha256
-    ).hexdigest()
+    ).hexdigest() if fb_secret else None
+
+    expected_instagram_signature = hmac.new(
+        key=ig_secret.encode('utf-8'),
+        msg=request.body,
+        digestmod=hashlib.sha256
+    ).hexdigest() if ig_secret else None
     
     # Compare signatures
-    if not hmac.compare_digest(signature, expected_signature):
-        logger.error('Webhook signature verification failed')
+    is_valid = False
+    if expected_facebook_signature and hmac.compare_digest(signature_hash, expected_facebook_signature):
+        logger.info('[SUCCESS] Webhook signature verified using FACEBOOK_APP_SECRET')
+        is_valid = True
+    elif expected_instagram_signature and hmac.compare_digest(signature_hash, expected_instagram_signature):
+        logger.info('[SUCCESS] Webhook signature verified using INSTAGRAM_CLIENT_SECRET')
+        is_valid = True
+
+    if not is_valid:
+        logger.error(f'[ERROR] Webhook signature verification failed. Provided: {signature_hash[:10]}...')
         return False
     
     return True
@@ -100,33 +127,36 @@ def verify_signature(request):
 def handle_webhook(request):
     """
     Process incoming webhook events from Instagram
-    
-    Events include:
-    - Comments on posts
-    - Direct messages
-    - Story mentions
-    - Story replies
     """
+    logger.info(f'[WEBHOOK] Received: {request.method} request to {request.path}')
     
-    # Verify signature
+    # 1. Verify signature
     if not verify_signature(request):
         return JsonResponse({'error': 'Invalid signature'}, status=403)
     
     try:
         data = json.loads(request.body.decode('utf-8'))
-        logger.info(f'Received webhook: {json.dumps(data, indent=2)}')
+        logger.info(f'[WEBHOOK] Payload: {json.dumps(data, indent=2)}')
         
-        # Process each entry
-        for entry in data.get('entry', []):
+        # 2. Extract entries
+        entries = data.get('entry', [])
+        if not entries:
+            logger.warning('[WARNING] Webhook contained no entries')
+            return JsonResponse({'status': 'no_entries'}, status=200)
+
+        logger.info(f'[PROCESS] Processing {len(entries)} webhook entries...')
+        
+        # 3. Process each entry
+        for entry in entries:
             process_entry(entry)
         
         return JsonResponse({'status': 'success'}, status=200)
         
     except json.JSONDecodeError:
-        logger.error('Invalid JSON in webhook payload')
+        logger.error('[ERROR] Invalid JSON in webhook payload')
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
-        logger.error(f'Webhook processing error: {str(e)}')
+        logger.error(f'[ERROR] Webhook processing error: {str(e)}', exc_info=True)
         return JsonResponse({'error': 'Processing failed'}, status=500)
 
 
@@ -210,7 +240,7 @@ def handle_comment(comment_data, instagram_account):
     user_id = from_user.get('id')
     username = from_user.get('username', '')
     
-    logger.info(f'📝 New comment from @{username}: "{comment_text}"')
+    logger.info(f'[COMMENT] New comment from @{username}: "{comment_text}"')
     
     # Find matching automations
     automations = Automation.objects.filter(
@@ -233,7 +263,7 @@ def handle_comment(comment_data, instagram_account):
                 status='pending'
             )
             
-            logger.info(f'✓ Created trigger {trigger.id} for automation {automation.name}')
+            logger.info(f'[TRIGGER] Created trigger {trigger.id} for automation {automation.name}')
             
             # Process in background (Celery task)
             process_automation_trigger_async.delay(str(trigger.id))

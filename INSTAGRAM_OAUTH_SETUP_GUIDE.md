@@ -67,7 +67,7 @@ Visit: https://developers.facebook.com/
 # Instagram OAuth
 FACEBOOK_APP_ID=1234567890123456
 FACEBOOK_APP_SECRET=abc123def456ghi789jkl012mno345pq
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000 
 ```
 
 ---

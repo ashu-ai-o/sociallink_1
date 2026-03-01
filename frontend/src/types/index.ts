@@ -2,8 +2,17 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  plan: 'free' | 'pro' | 'enterprise';
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  bio?: string;
+  profile_picture?: string | null;
+  plan?: 'free' | 'pro' | 'enterprise';
   subscription_end_date?: string;
+  onboarding_completed?: boolean;
+  onboarding_step?: number;
+  email_preferences?: Record<string, any>;
+  notification_preferences?: Record<string, any>;
   created_at: string;
 }
 

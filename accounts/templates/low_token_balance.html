@@ -1,0 +1,85 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Token balance low{% endblock %}
+
+{% block content %}
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Hi {{ user.first_name|default:user.username }},
+    </p>
+    
+    <p style="margin: 0 0 24px 0; font-size: 16px; color: #000000;">
+        You're running low on tokens. You have <strong>{{ current_tokens|floatformat:0 }}</strong> tokens remaining.
+    </p>
+    
+    <!-- Current Balance -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; border: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Current balance</td>
+                        <td align="right" style="font-size: 14px; color: #000000; font-weight: 500;">{{ current_tokens|floatformat:0 }} tokens</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 12px 16px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Used this month</td>
+                        <td align="right" style="font-size: 14px; color: #000000;">{{ tokens_used_percentage|floatformat:0 }}%</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Refill your tokens to keep building:
+    </p>
+    
+    <!-- Token Packages -->
+    {% for package in token_packages %}
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 12px 0; border: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 16px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td>
+                            <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 500; color: #000000;">
+                                {{ package.name }}
+                            </p>
+                            <p style="margin: 0; font-size: 13px; color: #666666;">
+                                {{ package.tokens|floatformat:0 }} tokens
+                            </p>
+                        </td>
+                        <td align="right" valign="middle">
+                            <p style="margin: 0; font-size: 16px; font-weight: 500; color: #000000;">
+                                {{ package.currency }} {{ package.price }}
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    {% endfor %}
+    
+    <!-- Button -->
+    <table cellpadding="0" cellspacing="0" border="0" style="margin: 32px 0;">
+        <tr>
+            <td align="center" style="background-color: #000000; border-radius: 4px;">
+                <a href="{{ frontend_url }}/billing/tokens" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;">Purchase tokens</a>
+            </td>
+        </tr>
+    </table>
+    
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #666666;">
+        You can also <a href="{{ frontend_url }}/settings/auto-refill" style="color: #000000; text-decoration: underline;">enable auto-refill</a> to never run out.
+    </p>
+    
+    <p style="margin: 0; font-size: 14px; color: #000000;">
+        — The {{ company_name }} team
+    </p>
+{% endblock %}

@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Send,
   TrendingUp,
+  Brain,
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import {
@@ -106,31 +107,28 @@ export const AutomationsPage = () => {
         <div className="flex gap-2 bg-neutral-100 dark:bg-neutral-900 rounded-lg p-1">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              filterStatus === 'all'
-                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filterStatus === 'all'
+              ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
           >
             All
           </button>
           <button
             onClick={() => setFilterStatus('active')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              filterStatus === 'active'
-                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filterStatus === 'active'
+              ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
           >
             Active
           </button>
           <button
             onClick={() => setFilterStatus('inactive')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              filterStatus === 'inactive'
-                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filterStatus === 'inactive'
+              ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+              }`}
           >
             Inactive
           </button>
@@ -156,115 +154,143 @@ export const AutomationsPage = () => {
             <div key={automation.id} className="group relative">
               {/* 3D floating shadow effect */}
               <div
-                className={`absolute inset-0 bg-gradient-to-br ${
-                  automation.is_active
-                    ? 'from-green-500/20 to-emerald-500/20'
-                    : 'from-neutral-500/10 to-neutral-500/10'
-                } rounded-2xl blur-xl transform translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition-all duration-300`}
+                className={`absolute inset-0 bg-gradient-to-br ${automation.is_active
+                  ? 'from-green-500/20 to-emerald-500/20'
+                  : 'from-neutral-500/10 to-neutral-500/10'
+                  } rounded-2xl blur-xl transform translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-3 transition-all duration-300`}
               ></div>
 
               <div className="relative bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 hover:shadow-2xl transition-all duration-300 group-hover:-translate-y-1"
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-medium text-neutral-900 dark:text-white">
-                      {automation.name}
-                    </h3>
-                    {automation.is_active ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
-                        Inactive
-                      </span>
-                    )}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-medium text-neutral-900 dark:text-white">
+                        {automation.name}
+                      </h3>
+                      {automation.is_active ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
+                          Inactive
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                      {automation.DmMessage.substring(0, 120)}...
+                    </p>
                   </div>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2">
-                    {automation.DmMessage.substring(0, 120)}...
-                  </p>
-                </div>
 
-                {/* Toggle Switch */}
-                <button
-                  onClick={() => handleToggle(automation.id)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    automation.is_active
+                  {/* Toggle Switch */}
+                  <button
+                    onClick={() => handleToggle(automation.id)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${automation.is_active
                       ? 'bg-green-500'
                       : 'bg-neutral-300 dark:bg-neutral-700'
-                  }`}
-                  title={automation.is_active ? 'Pause automation' : 'Activate automation'}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                      automation.is_active ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  ></span>
-                </button>
-              </div>
+                      }`}
+                    title={automation.is_active ? 'Pause automation' : 'Activate automation'}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${automation.is_active ? 'translate-x-6' : 'translate-x-0'
+                        }`}
+                    ></span>
+                  </button>
+                </div>
 
-              {/* Stats */}
-              <div className="flex items-center gap-6 mb-4 py-4 border-t border-b border-neutral-200 dark:border-neutral-800">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
-                    <MessageCircle className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-neutral-900 dark:text-white">
-                      {automation.total_triggers}
+                {/* Automation Details (Keywords & AI) */}
+                <div className="mb-4 text-sm">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium text-neutral-700 dark:text-neutral-300 min-w-[80px]">Keywords:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {automation.trigger_keywords && automation.trigger_keywords.length > 0 ? (
+                          automation.trigger_keywords.map((kw, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 rounded text-xs font-medium border border-neutral-200 dark:border-neutral-700">
+                              {kw}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-neutral-500 italic">None</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-neutral-500">Triggers</div>
+
+                    {automation.use_ai_enhancement && (
+                      <div className="flex items-start gap-2 mt-1">
+                        <span className="flex items-center gap-1 font-medium text-purple-600 dark:text-purple-400 min-w-[80px]">
+                          <Brain className="w-3.5 h-3.5" /> AI Context:
+                        </span>
+                        <span className="text-neutral-600 dark:text-neutral-400 italic line-clamp-1">
+                          {automation.ai_context || "No specific context provided"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <Send className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-neutral-900 dark:text-white">
-                      {automation.total_dms_sent}
-                    </div>
-                    <div className="text-xs text-neutral-500">DMs Sent</div>
-                  </div>
-                </div>
-
-                {automation.total_comment_replies > 0 && (
+                {/* Stats */}
+                <div className="flex items-center gap-6 mb-4 py-4 border-t border-b border-neutral-200 dark:border-neutral-800">
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <div className="p-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+                      <MessageCircle className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
                     </div>
                     <div>
                       <div className="text-lg font-semibold text-neutral-900 dark:text-white">
-                        {automation.total_comment_replies}
+                        {automation.total_triggers}
                       </div>
-                      <div className="text-xs text-neutral-500">Replies</div>
+                      <div className="text-xs text-neutral-500">Triggers</div>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                <Link
-                  to={`/automations/${automation.id}/edit`}
-                  className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit
-                </Link>
-                <button
-                  onClick={() => handleDelete(automation.id, automation.name)}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <Send className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="text-lg font-semibold text-neutral-900 dark:text-white">
+                        {automation.total_dms_sent}
+                      </div>
+                      <div className="text-xs text-neutral-500">DMs Sent</div>
+                    </div>
+                  </div>
+
+                  {automation.total_comment_replies > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-neutral-900 dark:text-white">
+                          {automation.total_comment_replies}
+                        </div>
+                        <div className="text-xs text-neutral-500">Replies</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-3">
+                  <Link
+                    to={`/automations/${automation.id}/edit`}
+                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(automation.id, automation.name)}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -1,4 +1,3 @@
-const serviceWorkerCode = 
 const CACHE_NAME = 'DmMe-v1';
 const urlsToCache = [
   '/',

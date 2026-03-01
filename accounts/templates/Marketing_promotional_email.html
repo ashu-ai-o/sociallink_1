@@ -1,0 +1,92 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}{{ offer_name|default:"Special offer" }}{% endblock %}
+
+{% block content %}
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Hi {{ user.first_name|default:user.username }},
+    </p>
+    
+    <p style="margin: 0 0 24px 0; font-size: 16px; color: #000000;">
+        {{ intro_message|default:"We have a special offer for you." }}
+    </p>
+    
+    <!-- Offer Highlight -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+        <tr>
+            <td style="padding: 20px; background-color: #000000; color: #ffffff; text-align: center;">
+                <p style="margin: 0 0 8px 0; font-size: 20px; font-weight: 500; color: #ffffff;">
+                    {{ offer_name|default:"Limited time offer" }}
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #ffffff; opacity: 0.9;">
+                    {{ offer_description|default:"Save 50% on your first year" }}
+                </p>
+            </td>
+        </tr>
+    </table>
+    
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #666666;">
+        Offer expires {{ offer_expires|date:"F d, Y" }}
+    </p>
+    
+    <!-- Pricing Comparison -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; border: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 16px; border-bottom: 1px solid #e0e0e0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Regular price</td>
+                        <td align="right" style="font-size: 14px; color: #666666; text-decoration: line-through;">{{ currency }} {{ regular_price|default:"999" }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 16px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #000000; font-weight: 500;">Special offer price</td>
+                        <td align="right" style="font-size: 16px; color: #000000; font-weight: 500;">{{ currency }} {{ offer_price|default:"499" }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+    
+    <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; color: #000000;">
+        What's included:
+    </p>
+    
+    <ul style="margin: 0 0 24px 0; padding-left: 20px;">
+        <li style="margin: 0 0 8px 0; font-size: 14px; color: #000000;">{{ feature1|default:"10,000 tokens per month" }}</li>
+        <li style="margin: 0 0 8px 0; font-size: 14px; color: #000000;">{{ feature2|default:"Priority support" }}</li>
+        <li style="margin: 0 0 8px 0; font-size: 14px; color: #000000;">{{ feature3|default:"All premium features" }}</li>
+        <li style="margin: 0 0 8px 0; font-size: 14px; color: #000000;">{{ feature4|default:"No hidden fees" }}</li>
+    </ul>
+    
+    <!-- Button -->
+    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+        <tr>
+            <td align="center" style="background-color: #000000; border-radius: 4px;">
+                <a href="{{ cta_url|default:frontend_url }}/pricing?promo={{ promo_code }}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;">Claim offer</a>
+            </td>
+        </tr>
+    </table>
+    
+    <p style="margin: 0 0 16px 0; font-size: 13px; color: #666666;">
+        Use promo code <strong style="color: #000000; font-family: monospace;">{{ promo_code|default:"SPECIAL50" }}</strong> at checkout.
+    </p>
+    
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #000000;">
+        Questions? Contact <a href="mailto:{{ company_email }}" style="color: #000000; text-decoration: underline;">{{ company_email }}</a>
+    </p>
+    
+    <p style="margin: 0; font-size: 14px; color: #000000;">
+        — The {{ company_name }} team
+    </p>
+    
+    <p style="margin: 24px 0 0 0; font-size: 12px; color: #999999;">
+        You're receiving this because you opted in to marketing emails.
+        <a href="{{ frontend_url }}/unsubscribe" style="color: #999999; text-decoration: underline;">Unsubscribe</a>
+    </p>
+{% endblock %}

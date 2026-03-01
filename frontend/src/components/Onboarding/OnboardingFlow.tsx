@@ -61,21 +61,36 @@ const slides: OnboardingSlide[] = [
 ];
 
 export const OnboardingFlow = () => {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const initialStep = parseInt(localStorage.getItem('onboarding_step') || '0', 10);
+  const [currentSlide, setCurrentSlide] = useState(initialStep < slides.length ? initialStep : 0);
   const [completing, setCompleting] = useState(false);
   const navigate = useNavigate();
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentSlide < slides.length - 1) {
-      setCurrentSlide(currentSlide + 1);
+      const nextSlide = currentSlide + 1;
+      setCurrentSlide(nextSlide);
+      try {
+        await api.saveOnboardingStep(nextSlide);
+        localStorage.setItem('onboarding_step', String(nextSlide));
+      } catch (err) {
+        console.error('Failed to save onboarding step', err);
+      }
     } else {
       handleComplete();
     }
   };
 
-  const handlePrev = () => {
+  const handlePrev = async () => {
     if (currentSlide > 0) {
-      setCurrentSlide(currentSlide - 1);
+      const prevSlide = currentSlide - 1;
+      setCurrentSlide(prevSlide);
+      try {
+        await api.saveOnboardingStep(prevSlide);
+        localStorage.setItem('onboarding_step', String(prevSlide));
+      } catch (err) {
+        console.error('Failed to save onboarding step', err);
+      }
     }
   };
 
@@ -88,13 +103,20 @@ export const OnboardingFlow = () => {
       setCompleting(true);
       await api.completeOnboarding();
       localStorage.setItem('onboarding_completed', 'true');
+      localStorage.setItem('onboarding_step', String(slides.length));
+
+      // Explicitly update the profile to sync React state immediately if needed
+      await api.getUserProfile();
+
       toast.success('Welcome to DmMe!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
-      toast.error('Failed to save progress');
-      // Still allow navigation even if API fails
+      toast.error('Failed to save progress, but letting you in.');
+
+      // Still allow navigation even if API fails, as a fallback
       localStorage.setItem('onboarding_completed', 'true');
+      localStorage.setItem('onboarding_step', String(slides.length));
       navigate('/dashboard');
     }
   };
@@ -176,11 +198,10 @@ export const OnboardingFlow = () => {
               <button
                 onClick={handlePrev}
                 disabled={currentSlide === 0}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-                  currentSlide === 0
-                    ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${currentSlide === 0
+                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
@@ -190,11 +211,10 @@ export const OnboardingFlow = () => {
                 {slides.map((_, index) => (
                   <div
                     key={index}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentSlide
-                        ? 'w-8 bg-gradient-to-r from-purple-500 to-pink-500'
-                        : 'w-2 bg-gray-300 dark:bg-gray-600'
-                    }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                      ? 'w-8 bg-gradient-to-r from-purple-500 to-pink-500'
+                      : 'w-2 bg-gray-300 dark:bg-gray-600'
+                      }`}
                   />
                 ))}
               </div>

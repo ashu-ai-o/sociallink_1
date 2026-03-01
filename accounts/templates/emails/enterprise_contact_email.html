@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Enterprise Inquiry</title>
+    <style>
+        body {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            background-color: #FAFAF8;
+            color: #191919;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px 0 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            font-size: 24px;
+            font-weight: bold;
+            color: #191919;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo span {
+            color: #D97757;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: normal;
+            margin: 0 0 24px 0;
+            color: #191919;
+        }
+
+        p {
+            font-size: 18px;
+            margin: 0 0 24px 0;
+            color: #191919;
+        }
+
+        .info-section {
+            margin-bottom: 32px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 24px;
+        }
+
+        .section-title {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+
+        .data-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: baseline;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 140px;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .value {
+            font-size: 16px;
+        }
+
+        .project-details {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            white-space: pre-wrap;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #191919;
+            color: #FAFAF8 !important;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-family: Helvetica, Arial, sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            margin-right: 16px;
+        }
+
+        .footer-wrapper {
+            background-color: #191919;
+            color: #FAFAF8;
+            padding: 40px 20px;
+            margin-top: 60px;
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+            display: block;
+            color: #FAFAF8;
+            text-decoration: none;
+        }
+
+        .footer-text {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            color: #999999;
+            margin: 0 0 12px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="#" class="logo">
+                <img src="logo_black_trans.svg" alt="GladMonet Internal"
+                    style="height: 35px; width: 35px; vertical-align: middle;">GladMonet
+            </a>
+        </div>
+
+        <h1>New Enterprise Inquiry</h1>
+        <p>A new enterprise contact form has been submitted.</p>
+
+        <div class="info-section">
+            <div class="section-title">Contact Information</div>
+            <div class="data-row">
+                <span class="label">Name:</span>
+                <span class="value">{{ contact.get_full_name }}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Email:</span>
+                <span class="value"><a href="mailto:{{ contact.email }}" style="color: #191919;">{{ contact.email
+                        }}</a></span>
+            </div>
+            <div class="data-row">
+                <span class="label">Phone:</span>
+                <span class="value">{{ contact.phone|default:'-' }}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Job Title:</span>
+                <span class="value">{{ contact.job_title|default:'-' }}</span>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="section-title">Company Information</div>
+            <div class="data-row">
+                <span class="label">Company:</span>
+                <span class="value">{{ contact.company_name }}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Size:</span>
+                <span class="value">{{ contact.company_size }}</span>
+            </div>
+        </div>
+
+        <div class="info-section" style="border-bottom: none;">
+            <div class="section-title">Project Details</div>
+            <div class="project-details">{{ contact.project_details }}</div>
+            <div class="data-row">
+                <span class="label">Budget:</span>
+                <span class="value">{{ contact.budget_range|default:'Not specified' }}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Timeline:</span>
+                <span class="value">{{ contact.timeline|default:'Not specified' }}</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+            <a href="mailto:{{ contact.email }}" class="button">Reply to Email</a>
+            <a href="{{ backend_url }}/admin/users/enterprisecontact/{{ contact.id }}/change/" class="button"
+                style="background-color: transparent; color: #191919 !important; border: 1px solid #191919;">View in
+                Admin</a>
+        </div>
+    </div>
+
+    <div class="footer-wrapper">
+        <div class="footer-content">
+            <a href="#" class="footer-logo">GLAD MONET SYSTEMS</a>
+            <p class="footer-text">Received: {{ contact.created_at|date:"F d, Y at h:i A" }}<br>IP: {{
+                contact.ip_address|default:'Unknown' }}</p>
+            <p class="footer-text">&copy; {% now "Y" %} Glad Monet Systems.</p>
+        </div>
+    </div>
+</body>
+
+</html>

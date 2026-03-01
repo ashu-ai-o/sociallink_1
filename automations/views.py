@@ -6,7 +6,7 @@ REST API Views for Automations with OpenRouter AI
 Provides endpoints for testing and managing AI-enhanced automations
 """
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -49,6 +49,45 @@ class AutomationViewSet(viewsets.ModelViewSet):
         return Automation.objects.filter(
             instagram_account__user=self.request.user
         ).select_related('instagram_account')
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to log validation errors"""
+        # Remove invalid instagram_account values like 'default'
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        if data.get('instagram_account') in ('default', '', None):
+            data.pop('instagram_account', None)
+        
+        serializer = self.get_serializer(data=data)
+        if not serializer.is_valid():
+            print(f"[AUTOMATION DEBUG] Validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
+    def perform_create(self, serializer):
+        """Auto-assign instagram account if not provided"""
+        from accounts.models import InstagramAccount
+        
+        instagram_account = serializer.validated_data.get('instagram_account')
+        if not instagram_account:
+            # Auto-assign user's first active Instagram account
+            account = InstagramAccount.objects.filter(
+                user=self.request.user, is_active=True
+            ).first()
+            if not account:
+                # If no active account, get any account
+                account = InstagramAccount.objects.filter(
+                    user=self.request.user
+                ).first()
+            if not account:
+                raise serializers.ValidationError({
+                    'instagram_account': 'Please connect an Instagram account first in Settings.'
+                })
+            serializer.save(instagram_account=account)
+        else:
+            serializer.save()
     
     @action(detail=True, methods=['post'])
     def toggle(self, request, pk=None):

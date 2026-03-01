@@ -91,10 +91,13 @@ export const SettingsPopup: React.FC = () => {
   // INSTAGRAM OAUTH HANDLER
   // ============================================================================
 
-  const handleConnectInstagram = async () => {
+  const handleConnectInstagram = async (method: 'facebook_graph' | 'instagram_platform' = 'facebook_graph') => {
     try {
       // Call backend API with JWT auth to get the OAuth URL
-      const response = await api.initiateInstagramOAuth();
+      const response = method === 'instagram_platform'
+        ? await api.client.get('/auth/instagram-direct/oauth/').then(res => res.data)
+        : await api.initiateInstagramOAuth();
+
       const oauthUrl = response.oauth_url;
 
       if (!oauthUrl) {
@@ -102,7 +105,7 @@ export const SettingsPopup: React.FC = () => {
         return;
       }
 
-      // Open the Facebook OAuth URL in a popup
+      // Open the Facebook/Instagram OAuth URL in a popup
       const width = 600;
       const height = 700;
       const left = window.screen.width / 2 - width / 2;
@@ -256,11 +259,10 @@ export const SettingsPopup: React.FC = () => {
                   <button
                     key={tab.id}
                     onClick={() => dispatch(setSettingsTab(tab.id))}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                      ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     {tab.label}
@@ -322,7 +324,7 @@ export const SettingsPopup: React.FC = () => {
 const GeneralTab: React.FC<any> = ({ profileData, setProfileData, onSubmit, loading, user }) => (
   <div>
     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">General Settings</h3>
-    
+
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -394,27 +396,56 @@ const InstagramTab: React.FC<any> = ({ accounts, loading, onConnect, onDisconnec
   <div>
     <div className="flex items-center justify-between mb-6">
       <h3 className="text-xl font-bold text-gray-900 dark:text-white">Instagram Accounts</h3>
-      <button
-        onClick={onConnect}
-        className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
-      >
-        <Instagram className="w-5 h-5" />
-        Connect Account
-      </button>
     </div>
 
-    {/* Info Box */}
-    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-      <div className="flex gap-3">
-        <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-800 dark:text-blue-200">
-          <p className="font-medium mb-1">Requirements:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Instagram account must be Business or Creator</li>
-            <li>Account must be linked to a Facebook Page</li>
-            <li>You'll need to grant permissions for DMs and comments</li>
+    {/* Connection Options */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* Option 1: Direct Instagram Login */}
+      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-5 flex flex-col items-start gap-3">
+        <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+          <Instagram className="w-5 h-5 flex-shrink-0" />
+          <h4 className="font-bold">Connect via Instagram</h4>
+        </div>
+        <div className="text-sm text-purple-900/80 dark:text-purple-200/80 flex-1">
+          <p className="mb-2"><strong>Recommended.</strong> Fastest way to automate DMs.</p>
+          <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+            <li>No Facebook Page required</li>
+            <li>Direct login via Instagram App</li>
           </ul>
         </div>
+        <button
+          onClick={() => onConnect('instagram_platform')}
+          className="w-full py-2.5 mt-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+        >
+          <Instagram className="w-4 h-4" />
+          Connect Instagram
+        </button>
+      </div>
+
+      {/* Option 2: Facebook Graph API */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5 flex flex-col items-start gap-3">
+        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+          <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+          </svg>
+          <h4 className="font-bold">Connect via Facebook</h4>
+        </div>
+        <div className="text-sm text-blue-900/80 dark:text-blue-200/80 flex-1">
+          <p className="mb-2"><strong>Legacy Method.</strong> Useful if you manage multiple tools.</p>
+          <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+            <li>Requires a linked Facebook Page</li>
+            <li>Connects via Meta Business Suite</li>
+          </ul>
+        </div>
+        <button
+          onClick={() => onConnect('facebook_graph')}
+          className="w-full py-2.5 mt-2 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#166FE5] transition-colors flex items-center justify-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+          </svg>
+          Connect Facebook
+        </button>
       </div>
     </div>
 
@@ -427,21 +458,14 @@ const InstagramTab: React.FC<any> = ({ accounts, loading, onConnect, onDisconnec
 
     {/* Empty State */}
     {!loading && accounts.length === 0 && (
-      <div className="text-center py-12">
+      <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
         <Instagram className="w-16 h-16 text-gray-400 mx-auto mb-4" />
         <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
           No Instagram Accounts Connected
         </h4>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Connect your Instagram account to start automating DMs
+        <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+          Choose a connection method above to link your Instagram account and start automating your DMs.
         </p>
-        <button
-          onClick={onConnect}
-          className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors inline-flex items-center gap-2"
-        >
-          <Instagram className="w-5 h-5" />
-          Connect Your First Account
-        </button>
       </div>
     )}
 
@@ -598,7 +622,7 @@ const NotificationsTab: React.FC = () => {
   return (
     <div>
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Notifications</h3>
-      
+
       <div className="space-y-4">
         {Object.entries(settings).map(([key, value]) => (
           <div key={key} className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-800">
@@ -612,14 +636,12 @@ const NotificationsTab: React.FC = () => {
             </div>
             <button
               onClick={() => setSettings({ ...settings, [key]: !value })}
-              className={`relative w-12 h-6 rounded-full transition-colors ${
-                value ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
-              }`}
+              className={`relative w-12 h-6 rounded-full transition-colors ${value ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
+                }`}
             >
               <div
-                className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                  value ? 'translate-x-7' : 'translate-x-1'
-                }`}
+                className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${value ? 'translate-x-7' : 'translate-x-1'
+                  }`}
               />
             </button>
           </div>
@@ -636,7 +658,7 @@ const NotificationsTab: React.FC = () => {
 const SecurityTab: React.FC<any> = ({ passwordData, setPasswordData, onSubmit, loading }) => (
   <div>
     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Security</h3>
-    
+
     <form onSubmit={onSubmit} className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -696,7 +718,7 @@ const SecurityTab: React.FC<any> = ({ passwordData, setPasswordData, onSubmit, l
 const BillingTab: React.FC<any> = ({ user }) => (
   <div>
     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Billing & Plan</h3>
-    
+
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div>

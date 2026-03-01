@@ -55,7 +55,8 @@ export const CreateAutomationPage = () => {
       toast.success('Automation created successfully');
       navigate('/automations');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create automation');
+      const msg = typeof error === 'string' ? error : error?.message || error?.response?.data?.detail || 'Failed to create automation';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -107,13 +108,12 @@ export const CreateAutomationPage = () => {
           <div key={s.number} className="flex items-center flex-1">
             <div className="flex flex-col items-center flex-1">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all ${
-                  step > s.number
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all ${step > s.number
                     ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
                     : step === s.number
-                    ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 ring-4 ring-neutral-200 dark:ring-neutral-800'
-                    : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-500'
-                }`}
+                      ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 ring-4 ring-neutral-200 dark:ring-neutral-800'
+                      : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-500'
+                  }`}
               >
                 {step > s.number ? <Check className="w-5 h-5" /> : s.number}
               </div>
@@ -123,11 +123,10 @@ export const CreateAutomationPage = () => {
             </div>
             {i < steps.length - 1 && (
               <div
-                className={`h-0.5 flex-1 mx-2 transition-colors ${
-                  step > s.number
+                className={`h-0.5 flex-1 mx-2 transition-colors ${step > s.number
                     ? 'bg-neutral-900 dark:bg-white'
                     : 'bg-neutral-200 dark:bg-neutral-800'
-                }`}
+                  }`}
               ></div>
             )}
           </div>

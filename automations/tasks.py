@@ -19,6 +19,8 @@ from django.utils import timezone
 from django.db.models import F
 import logging
 
+
+
 logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
 
@@ -539,6 +541,7 @@ def check_trigger_conditions(automation, comment_text: str) -> bool:
         )
     
     return False
+
 
 
 # ============================================================================

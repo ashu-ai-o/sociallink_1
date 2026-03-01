@@ -15,6 +15,9 @@ interface Automation {
   enable_comment_reply: boolean;
   comment_reply_message: string;
   use_ai_enhancement: boolean;
+  trigger_match_type: 'exact' | 'contains' | 'any';
+  dm_buttons: { text: string; url: string }[];
+  ai_context: string;
 }
 
 interface AutomationsState {
@@ -39,6 +42,40 @@ const initialState: AutomationsState = {
   },
 };
 
+// Helper to extract actual error messages from DRF/Axios errors
+function extractErrorMessage(error: any): string {
+  const data = error?.response?.data;
+  if (!data) return error?.message || 'An unexpected error occurred';
+
+  // If data is a string
+  if (typeof data === 'string') return data;
+
+  // DRF detail field
+  if (data.detail) return data.detail;
+
+  // DRF error field
+  if (data.error) return data.error;
+
+  // DRF message field
+  if (data.message) return data.message;
+
+  // DRF non_field_errors
+  if (data.non_field_errors) {
+    return Array.isArray(data.non_field_errors) ? data.non_field_errors.join('. ') : data.non_field_errors;
+  }
+
+  // Field-specific errors: { field_name: ["error1", "error2"] }
+  const fieldErrors: string[] = [];
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'success') continue;
+    const msgs = Array.isArray(value) ? value.join(', ') : String(value);
+    fieldErrors.push(`${key}: ${msgs}`);
+  }
+  if (fieldErrors.length > 0) return fieldErrors.join('. ');
+
+  return error?.message || 'An unexpected error occurred';
+}
+
 // Async Thunks
 export const fetchAutomations = createAsyncThunk(
   'automations/fetchAll',
@@ -47,7 +84,7 @@ export const fetchAutomations = createAsyncThunk(
       const response = await api.getAutomations();
       return response.results || response;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(extractErrorMessage(error));
     }
   }
 );
@@ -59,7 +96,7 @@ export const createAutomation = createAsyncThunk(
       const response = await api.createAutomation(data);
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(extractErrorMessage(error));
     }
   }
 );
@@ -71,7 +108,7 @@ export const updateAutomation = createAsyncThunk(
       const response = await api.updateAutomation(id, data);
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(extractErrorMessage(error));
     }
   }
 );
@@ -83,7 +120,7 @@ export const deleteAutomation = createAsyncThunk(
       await api.deleteAutomation(id);
       return id;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(extractErrorMessage(error));
     }
   }
 );
@@ -95,7 +132,7 @@ export const toggleAutomation = createAsyncThunk(
       const response = await api.toggleAutomation(id);
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(extractErrorMessage(error));
     }
   }
 );
