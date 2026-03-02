@@ -16,28 +16,28 @@
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
   --bg-hover: #f3f4f6;
-  
+
   --text-primary: #111827;
   --text-secondary: #6b7280;
   --text-tertiary: #9ca3af;
-  
+
   --border-primary: #e5e7eb;
   --border-secondary: #d1d5db;
-  
+
   --accent-primary: #8b5cf6;
   --accent-hover: #7c3aed;
   --accent-light: #ede9fe;
-  
+
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
   --info: #3b82f6;
-  
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  
+
   --toast-bg: #ffffff;
   --toast-text: #111827;
 }
@@ -48,28 +48,28 @@
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
   --bg-hover: #334155;
-  
+
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
-  
+
   --border-primary: #334155;
   --border-secondary: #475569;
-  
+
   --accent-primary: #a78bfa;
   --accent-hover: #8b5cf6;
   --accent-light: #4c1d95;
-  
+
   --success: #34d399;
   --error: #f87171;
   --warning: #fcd34d;
   --info: #60a5fa;
-  
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
-  
+
   --toast-bg: #1e293b;
   --toast-text: #f1f5f9;
 }
@@ -223,6 +223,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -232,6 +233,7 @@ body {
   from {
     transform: translateX(100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -242,6 +244,7 @@ body {
     transform: translateX(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -253,6 +256,7 @@ body {
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -273,6 +277,26 @@ body {
 
 .slide-in-up {
   animation: slideInUp 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.93) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease both;
 }
 
 /* ============================================================================

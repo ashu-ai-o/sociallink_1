@@ -23,7 +23,9 @@ import {
   toggleAutomation,
   deleteAutomation,
 } from '../../store/slices/automationsSlice';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import toast from 'react-hot-toast';
+
 
 export const AutomationsPage = () => {
   const dispatch = useAppDispatch();
@@ -32,6 +34,8 @@ export const AutomationsPage = () => {
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
 
   useEffect(() => {
     dispatch(fetchAutomations());
@@ -46,16 +50,22 @@ export const AutomationsPage = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete "${name}"?`)) {
-      try {
-        await dispatch(deleteAutomation(id)).unwrap();
-        toast.success('Automation deleted successfully');
-      } catch (error) {
-        toast.error('Failed to delete automation');
-      }
+  const handleDelete = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await dispatch(deleteAutomation(deleteTarget.id)).unwrap();
+      toast.success('Automation deleted successfully');
+    } catch {
+      toast.error('Failed to delete automation');
+    } finally {
+      setDeleteTarget(null);
     }
   };
+
 
   const filteredAutomations = automations.filter((automation) => {
     const matchesSearch = automation.name
@@ -321,6 +331,18 @@ export const AutomationsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Custom confirm modal — no browser popups */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete Automation"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

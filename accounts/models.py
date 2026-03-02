@@ -805,8 +805,6 @@ class Feedback(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
 
-    # Optional: attach a project
-    project_id = models.UUIDField(null=True, blank=True)
 
     # Rating (1–5 stars, optional)
     rating = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -879,6 +877,8 @@ class InstagramAccount(models.Model):
     
     profile_picture_url = models.URLField(blank=True)
     followers_count = models.IntegerField(default=0)
+    following_count = models.IntegerField(default=0)
+    media_count = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     last_synced = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)

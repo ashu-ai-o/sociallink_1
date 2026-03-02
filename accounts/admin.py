@@ -17,10 +17,45 @@ from .models import User, EmailVerificationToken, PasswordResetToken, Feedback
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'category', 'title', 'priority', 'status', 'created_at']
+    list_display = ['id', 'get_user_name', 'get_user_email', 'category', 'title', 'priority', 'status', 'rating', 'created_at']
     list_filter = ['category', 'priority', 'status', 'created_at']
-    search_fields = ['title', 'message', 'user__username']
-    readonly_fields = ['created_at', 'updated_at']
+    search_fields = ['title', 'message', 'user__username', 'user__email', 'user__first_name', 'user__last_name']
+    readonly_fields = ['id', 'created_at', 'updated_at', 'page_url', 'user_agent']
+
+    fieldsets = (
+        ('Submission', {
+            'fields': ('id', 'user', 'category', 'title', 'message', 'rating')
+        }),
+        ('Status', {
+            'fields': ('priority', 'status', 'admin_notes'),
+        }),
+        ('Meta', {
+            'fields': ('page_url', 'user_agent', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def get_user_name(self, obj):
+        if obj.user:
+            return obj.user.username
+        return obj.name or '—'
+    get_user_name.short_description = 'Username'
+    get_user_name.admin_order_field = 'user__username'
+
+    def get_user_email(self, obj):
+        if obj.user:
+            return obj.user.email
+        return obj.email or '—'
+    get_user_email.short_description = 'Email'
+    get_user_email.admin_order_field = 'user__email'
+
+    def save_model(self, request, obj, form, change):
+        """Auto-populate email/name from the linked user if present."""
+        if obj.user:
+            obj.email = obj.user.email
+            obj.name = obj.user.username
+        super().save_model(request, obj, form, change)
+
 
 
 

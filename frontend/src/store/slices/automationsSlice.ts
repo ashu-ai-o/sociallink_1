@@ -5,9 +5,13 @@ import { api } from '../../utils/api';
 interface Automation {
   id: string;
   name: string;
+  instagram_account: string;
   trigger_type: string;
   trigger_keywords: string[];
+  trigger_match_type: 'exact' | 'contains' | 'any';
+  target_posts: string[];
   DmMessage: string;
+  dm_buttons: { text: string; url: string }[];
   is_active: boolean;
   total_triggers: number;
   total_dms_sent: number;
@@ -15,8 +19,6 @@ interface Automation {
   enable_comment_reply: boolean;
   comment_reply_message: string;
   use_ai_enhancement: boolean;
-  trigger_match_type: 'exact' | 'contains' | 'any';
-  dm_buttons: { text: string; url: string }[];
   ai_context: string;
 }
 

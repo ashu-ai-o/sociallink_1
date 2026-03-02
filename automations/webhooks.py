@@ -265,12 +265,26 @@ def handle_comment(comment_data, instagram_account):
             
             logger.info(f'[TRIGGER] Created trigger {trigger.id} for automation {automation.name}')
             
-            # Process in background (Celery task)
-            process_automation_trigger_async.delay(str(trigger.id))
+            # Dispatch to Celery (wrapped — webhook must return 200 even if broker is down)
+            try:
+                process_automation_trigger_async.delay(str(trigger.id))
+                logger.info(f'[TRIGGER] Task queued for trigger {trigger.id}')
+            except Exception as celery_err:
+                # Don't let Celery failure crash the webhook — trigger stays 'pending'
+                # and can be retried later via process_queued_triggers
+                logger.error(
+                    f'[TRIGGER] Failed to queue Celery task for trigger {trigger.id}: {celery_err}. '
+                    f'Trigger saved as pending — will retry when broker is available.'
+                )
             
-            # Update automation stats
-            automation.total_triggers += 1
-            automation.save()
+            # Update automation stats (must happen regardless of Celery result)
+            try:
+                automation.total_triggers += 1
+                automation.save(update_fields=['total_triggers'])
+            except Exception as save_err:
+                logger.error(f'[TRIGGER] Failed to update automation stats: {save_err}')
+
+
 
 
 def should_trigger_automation(automation, comment_text, post_id):

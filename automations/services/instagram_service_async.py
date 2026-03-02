@@ -13,12 +13,21 @@ logger = logging.getLogger(__name__)
 
 class InstagramServiceAsync:
     """
-    Instagram Graph API client with comment reply support
+    Instagram API client with comment reply support.
+    Supports both connection methods:
+      - instagram_platform: uses graph.instagram.com
+      - facebook_graph:     uses graph.facebook.com
     """
     
-    def __init__(self, access_token: str):
+    def __init__(self, access_token: str, connection_method: str = 'facebook_graph'):
         self.access_token = access_token
-        self.base_url = 'https://graph.facebook.com/v21.0'
+        self.connection_method = connection_method
+        
+        # Choose correct base URL based on connection method
+        if connection_method == 'instagram_platform':
+            self.base_url = 'https://graph.instagram.com/v21.0'
+        else:
+            self.base_url = 'https://graph.facebook.com/v21.0'
         
         self.client = httpx.AsyncClient(
             timeout=30.0,
@@ -59,8 +68,8 @@ class InstagramServiceAsync:
             response.raise_for_status()
             return {"success": True, "data": response.json()}
         except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to send DM: {e.response.status_code}")
-            return {"success": False, "error": str(e)}
+            logger.error(f"Failed to send DM: {e.response.status_code} - {e.response.text}")
+            return {"success": False, "error": str(e), "details": e.response.text}
         except Exception as e:
             logger.error(f"DM send error: {str(e)}")
             return {"success": False, "error": str(e)}
@@ -105,7 +114,7 @@ class InstagramServiceAsync:
                 "data": data
             }
         except httpx.HTTPStatusError as e:
-            error_msg = f"Failed to reply to comment: {e.response.status_code}"
+            error_msg = f"Failed to reply to comment: {e.response.status_code} - {e.response.text}"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
         except Exception as e:

@@ -37,6 +37,16 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# In DEBUG mode, allow all ngrok tunnels automatically (URL changes on every restart)
+if DEBUG:
+    ALLOWED_HOSTS += [
+        '.ngrok-free.app',   # Free ngrok tunnels (wildcard)
+        '.ngrok.io',         # Paid ngrok tunnels
+        'localhost',
+        '127.0.0.1',
+    ]
+
+
 
 
 
@@ -199,8 +209,12 @@ CHANNEL_LAYERS = {
 
 
 # Celery Configuration
-CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
+# Use 127.0.0.1 explicitly (not 'localhost') - on Windows, 'localhost' resolves to ::1 (IPv6)
+# but Redis only listens on 127.0.0.1 (IPv4), causing WinError 10061 in kombu transport
+_redis_url = config('REDIS_URL', default='redis://localhost:6379/0').replace('redis://localhost', 'redis://127.0.0.1')
+CELERY_BROKER_URL = _redis_url
+CELERY_RESULT_BACKEND = _redis_url
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -214,11 +228,18 @@ CELERY_TASK_TIME_LIMIT = 300  # 5 minutes max per task
 
 # Celery Beat Schedule (automated tasks)
 CELERY_BEAT_SCHEDULE = {
+    # Retry any 'pending' triggers every 30s — ensures automations run even if .delay() failed at webhook time
+    'retry-pending-triggers': {
+        'task': 'automations.tasks.retry_pending_triggers',
+        'schedule': 30.0,
+    },
+    # Also run the original comment bulk check (polls for comments directly)
     'check-comments-every-30s': {
         'task': 'automations.tasks.check_comments_bulk_async',
-        'schedule': 30.0,  # Every 30 seconds
+        'schedule': 30.0,
     },
 }
+
 
 
 # Redis for caching and rate limiting

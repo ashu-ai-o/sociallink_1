@@ -312,6 +312,16 @@ class ApiClient {
     return response.data;
   }
 
+  async getInstagramPosts(accountId: string) {
+    const response = await this.client.get(`/instagram-accounts/${accountId}/posts/`);
+    return response.data;
+  }
+
+  async getInstagramProfileStats(accountId: string) {
+    const response = await this.client.get(`/instagram-accounts/${accountId}/profile_stats/`);
+    return response.data;
+  }
+
   // ========================================================================
   // AUTOMATIONS
   // ========================================================================

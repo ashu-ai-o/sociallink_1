@@ -395,7 +395,8 @@ class InstagramAccountSerializer(serializers.ModelSerializer):
         model = InstagramAccount
         fields = [
             'id', 'username', 'instagram_user_id', 'profile_picture_url',
-            'followers_count', 'is_active', 'last_synced', 'created_at'
+            'followers_count', 'following_count', 'media_count',
+            'is_active', 'last_synced', 'created_at'
         ]
         read_only_fields = ['id', 'last_synced', 'created_at']
 

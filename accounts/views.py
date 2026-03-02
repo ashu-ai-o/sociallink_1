@@ -2277,10 +2277,20 @@ class FeedbackView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        feedback = serializer.save(
-            user=request.user if request.user.is_authenticated else None,
-            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
-        )
+        user = request.user if request.user.is_authenticated else None
+
+        # Derive email / name from the authenticated user so the fields
+        # are never left blank in the database.
+        save_kwargs = {
+            'user': user,
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')[:500],
+        }
+        if user:
+            save_kwargs['email'] = user.email
+            save_kwargs['name'] = user.username
+
+        feedback = serializer.save(**save_kwargs)
+
         return Response(
             {'id': str(feedback.id), 'message': 'Thank you for your feedback!'},
             status=status.HTTP_201_CREATED,
@@ -2872,7 +2882,167 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter by current user"""
         return InstagramAccount.objects.filter(user=self.request.user)
-    
+
+    @action(detail=True, methods=['get'])
+    def posts(self, request, pk=None):
+        """
+        Fetch Instagram posts for post targeting.
+        GET /api/instagram-accounts/{id}/posts/
+        Handles both connection methods:
+          - instagram_platform: uses graph.instagram.com/me/media
+          - facebook_graph: uses graph.facebook.com/{ig_user_id}/media
+        """
+        try:
+            account = self.get_object()
+            import requests as req
+
+            # Choose correct base URL based on connection method
+            if account.connection_method == 'instagram_platform':
+                media_url = 'https://graph.instagram.com/v21.0/me/media'
+                params = {
+                    'access_token': account.access_token,
+                    'fields': 'id,caption,media_type,thumbnail_url,media_url,timestamp,permalink',
+                    'limit': 20,
+                }
+            else:
+                media_url = f'https://graph.facebook.com/v21.0/{account.instagram_user_id}/media'
+                params = {
+                    'access_token': account.access_token,
+                    'fields': 'id,caption,media_type,thumbnail_url,media_url,timestamp,permalink',
+                    'limit': 20,
+                }
+
+            response = req.get(media_url, params=params, timeout=15)
+            data = response.json()
+
+            if 'error' in data:
+                logger.error(f"Posts fetch error for {account.username}: {data['error']}")
+                return Response({'error': data['error'].get('message', 'API error')}, status=400)
+
+            posts = []
+            for item in data.get('data', []):
+                thumbnail = item.get('thumbnail_url') or item.get('media_url', '')
+                posts.append({
+                    'id': item['id'],
+                    'caption': (item.get('caption', '') or '')[:100],
+                    'media_type': item.get('media_type', 'IMAGE'),
+                    'thumbnail_url': thumbnail,
+                    'timestamp': item.get('timestamp', ''),
+                    'permalink': item.get('permalink', ''),
+                })
+
+            return Response({'posts': posts, 'total': len(posts)})
+
+        except Exception as e:
+            logger.error(f"Failed to fetch Instagram posts: {str(e)}")
+            return Response({'error': 'Failed to fetch posts', 'detail': str(e)}, status=500)
+
+
+    @action(detail=True, methods=['get'])
+    def profile_stats(self, request, pk=None):
+        """
+        Fetch live Instagram profile stats (followers + post count).
+        GET /api/instagram-accounts/{id}/profile_stats/
+        Handles both instagram_platform (graph.instagram.com) and
+        facebook_graph (graph.facebook.com) connection methods.
+        """
+        account = self.get_object()
+        import requests as req
+
+        token = account.access_token
+        is_platform = account.connection_method == 'instagram_platform'
+
+        followers = account.followers_count
+        media_count = account.media_count
+        username = account.username
+        profile_picture_url = account.profile_picture_url
+
+        # ── Step 1: Fetch profile (followers, username) ───────────────────────
+        try:
+            if is_platform:
+                profile_url = 'https://graph.instagram.com/v21.0/me'
+                profile_fields = 'followers_count,username,profile_picture_url,media_count'
+            else:
+                ig_id = account.instagram_user_id
+                profile_url = f'https://graph.facebook.com/v21.0/{ig_id}'
+                profile_fields = 'followers_count,username,profile_picture_url'
+
+            profile_resp = req.get(
+                profile_url,
+                params={'access_token': token, 'fields': profile_fields},
+                timeout=15,
+            )
+            profile_data = profile_resp.json()
+
+            if 'error' in profile_data:
+                logger.error(f"[profile_stats] Profile error: {profile_data['error']}")
+            else:
+                followers = profile_data.get('followers_count') or followers
+                username = profile_data.get('username') or username
+                profile_picture_url = profile_data.get('profile_picture_url') or profile_picture_url
+                # For platform accounts, media_count is reliably returned
+                if is_platform and profile_data.get('media_count'):
+                    media_count = profile_data['media_count']
+                logger.info(f"[profile_stats] profile OK: followers={followers}, media_count={media_count}")
+        except Exception as e:
+            logger.error(f"[profile_stats] Profile fetch failed: {e}")
+
+        # ── Step 2: Count posts from /media list (always for non-platform) ────
+        # For instagram_platform we already have media_count from the profile;
+        # for facebook_graph we count from the media list as a fallback.
+        if not is_platform or media_count == 0:
+            try:
+                counted = 0
+                if is_platform:
+                    next_url: str | None = 'https://graph.instagram.com/v21.0/me/media'
+                else:
+                    ig_id = account.instagram_user_id
+                    next_url = f'https://graph.facebook.com/v21.0/{ig_id}/media'
+
+                next_params: dict = {'access_token': token, 'fields': 'id', 'limit': 100}
+
+                while next_url:
+                    media_resp = req.get(next_url, params=next_params, timeout=15)
+                    media_data = media_resp.json()
+
+                    if 'error' in media_data:
+                        logger.error(f"[profile_stats] Media error: {media_data['error']}")
+                        break
+
+                    items = media_data.get('data', [])
+                    counted += len(items)
+
+                    paging = media_data.get('paging', {})
+                    cursors = paging.get('cursors', {})
+                    if paging.get('next') and cursors.get('after'):
+                        next_params = {'access_token': token, 'fields': 'id', 'limit': 100, 'after': cursors['after']}
+                    else:
+                        next_url = None
+
+                if counted > 0:
+                    media_count = counted
+                logger.info(f"[profile_stats] counted media_count={media_count}")
+            except Exception as e:
+                logger.error(f"[profile_stats] Media count failed: {e}")
+
+        # ── Step 3: Persist ───────────────────────────────────────────────────
+        try:
+            account.followers_count = followers
+            account.media_count = media_count
+            account.save(update_fields=['followers_count', 'media_count', 'last_synced'])
+        except Exception as e:
+            logger.error(f"[profile_stats] DB save failed: {e}")
+
+        return Response({
+            'username': username,
+            'profile_picture_url': profile_picture_url,
+            'followers_count': followers,
+            'media_count': media_count,
+            'last_synced': account.last_synced,
+        })
+
+
+
     def create(self, request, *args, **kwargs):
         """
         Connect new Instagram account

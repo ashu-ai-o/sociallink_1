@@ -142,6 +142,43 @@ class QueueManager:
 # MAIN PROCESSING TASK (WITH RATE LIMITING)
 # ============================================================================
 
+@shared_task
+def retry_pending_triggers():
+    """
+    Periodic safety net: dispatch any triggers stuck in 'pending' status.
+    Runs every 30 seconds via Celery Beat.
+    Catches cases where .delay() failed during webhook handling (e.g. momentary broker issue).
+    """
+    from .models import AutomationTrigger
+    from django.utils import timezone
+
+    # Only retry triggers that are < 24 hours old and still pending
+    cutoff = timezone.now() - timezone.timedelta(hours=24)
+    pending = AutomationTrigger.objects.filter(
+        status='pending',
+        created_at__gte=cutoff
+    ).order_by('created_at')
+
+    count = pending.count()
+    if count == 0:
+        return
+
+    logger.info(f'[retry_pending_triggers] Found {count} pending triggers \u2014 dispatching...')
+    dispatched = 0
+    for trigger in pending:
+        try:
+            process_automation_trigger_async.delay(str(trigger.id))
+            dispatched += 1
+        except Exception as e:
+            logger.error(f'[retry_pending_triggers] Failed to dispatch trigger {trigger.id}: {e}')
+
+    logger.info(f'[retry_pending_triggers] Dispatched {dispatched}/{count} triggers')
+
+
+# ============================================================================
+# MAIN PROCESSING TASK (WITH RATE LIMITING)
+# ============================================================================
+
 @shared_task(bind=True, max_retries=3, soft_time_limit=300)
 def process_automation_trigger_async(self, trigger_id):
     """
@@ -164,7 +201,7 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     """Main processing logic with rate limiting"""
     from .models import AutomationTrigger, Contact
     from automations.services.instagram_service_async import InstagramServiceAsync
-    from services.ai_service_async import AIServiceAsync
+    from automations.services.ai_service_async import AIServiceOpenRouter
     
     # ═══════════════════════════════════════════════════════════
     # STEP 1: Load trigger
@@ -211,7 +248,10 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     # ═══════════════════════════════════════════════════════════
     # STEP 3: Initialize Instagram service
     # ═══════════════════════════════════════════════════════════
-    instagram_service = InstagramServiceAsync(instagram_account.access_token)
+    instagram_service = InstagramServiceAsync(
+        instagram_account.access_token,
+        connection_method=instagram_account.connection_method
+    )
     
     trigger.status = 'processing'
     await trigger.asave()
@@ -252,20 +292,21 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     
     if automation.use_ai_enhancement and automation.ai_context:
         try:
-            ai_service = AIServiceAsync()
-            
-            result = await ai_service.enhance_DmMessage(
-                base_message=message,
-                business_context=automation.ai_context,
-                user_comment=trigger.comment_text,
-                username=trigger.instagram_username,
-                preferred_provider='openrouter'
-            )
-            
-            if result['success']:
-                message = result['enhanced_message']
-                trigger.was_ai_enhanced = True
-                trigger.ai_modifications = f"{result['provider_used']}/{result['model_used']}"
+            from django.conf import settings as django_settings
+            api_key = getattr(django_settings, 'OPENROUTER_API_KEY', '')
+            if api_key:
+                ai_service = AIServiceOpenRouter(api_key=api_key)
+                result = await ai_service.enhance_DmMessage(
+                    base_message=message,
+                    business_context=automation.ai_context,
+                    user_comment=trigger.comment_text,
+                    username=trigger.instagram_username,
+                )
+                if result['success']:
+                    message = result['enhanced_message']
+                    trigger.was_ai_enhanced = True
+                    trigger.ai_modifications = result.get('model_used', 'openrouter')
+                await ai_service.close()
         except Exception as e:
             logger.error(f'AI enhancement failed: {str(e)}')
             # Continue with original message
@@ -480,7 +521,8 @@ async def process_automation_comments(automation):
     from automations.services.instagram_service_async import InstagramServiceAsync
     
     instagram_service = InstagramServiceAsync(
-        automation.instagram_account.access_token
+        automation.instagram_account.access_token,
+        connection_method=automation.instagram_account.connection_method
     )
     
     posts_to_check = automation.target_posts if automation.target_posts else []

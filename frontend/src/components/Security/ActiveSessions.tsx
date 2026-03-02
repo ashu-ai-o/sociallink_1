@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Smartphone, Tablet, Globe, Clock, MapPin, Trash2, LogOut, AlertTriangle, Shield } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Globe, Clock, MapPin, Trash2, LogOut, AlertTriangle, Shield, X } from 'lucide-react';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -22,11 +22,95 @@ interface Session {
     is_current?: boolean;
 }
 
+// ── Confirmation Modal ──────────────────────────────────────────────────────
+interface LogoutAllModalProps {
+    isOpen: boolean;
+    loading: boolean;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+const LogoutAllModal: React.FC<LogoutAllModalProps> = ({ isOpen, loading, onConfirm, onCancel }) => {
+    if (!isOpen) return null;
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+        >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-150" />
+
+            {/* Modal */}
+            <div className="relative w-full max-w-md bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 animate-in zoom-in-95 fade-in duration-150 overflow-hidden">
+                {/* Top accent bar */}
+                <div className="h-1 w-full bg-gradient-to-r from-red-500 to-rose-500" />
+
+                <div className="p-6">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30">
+                                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-semibold text-neutral-900 dark:text-white">
+                                    Logout All Other Devices
+                                </h3>
+                                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                                    Security action
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onCancel}
+                            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Body */}
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed mb-2">
+                        This will immediately end all active sessions on other devices. You will remain logged in on this device.
+                    </p>
+                    <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50 mt-4 mb-5">
+                        <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                            Use this if you suspect unauthorised access to your account.
+                        </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 justify-end">
+                        <button
+                            onClick={onCancel}
+                            disabled={loading}
+                            className="px-4 py-2 rounded-xl text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            disabled={loading}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-60 shadow-lg shadow-red-500/20"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            {loading ? 'Logging out…' : 'Yes, Logout All'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 export const ActiveSessions: React.FC = () => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(true);
     const [endingSession, setEndingSession] = useState<string | null>(null);
     const [logoutAllLoading, setLogoutAllLoading] = useState(false);
+    const [showLogoutAllModal, setShowLogoutAllModal] = useState(false);
 
     useEffect(() => {
         loadSessions();
@@ -58,7 +142,7 @@ export const ActiveSessions: React.FC = () => {
     };
 
     const handleLogoutAllDevices = async () => {
-        if (!confirm('This will log you out from all other devices. Continue?')) return;
+        setShowLogoutAllModal(false);
         setLogoutAllLoading(true);
         try {
             await api.logoutAllDevices(true);
@@ -128,12 +212,12 @@ export const ActiveSessions: React.FC = () => {
 
                 {sessions.length > 1 && (
                     <button
-                        onClick={handleLogoutAllDevices}
+                        onClick={() => setShowLogoutAllModal(true)}
                         disabled={logoutAllLoading}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
                     >
                         <LogOut className="w-4 h-4" />
-                        {logoutAllLoading ? 'Logging out...' : 'Logout All Others'}
+                        {logoutAllLoading ? 'Logging out…' : 'Logout All Others'}
                     </button>
                 )}
             </div>
@@ -149,8 +233,8 @@ export const ActiveSessions: React.FC = () => {
                         <div
                             key={session.id}
                             className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all ${session.is_current
-                                    ? 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900'
-                                    : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
+                                ? 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900'
+                                : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
                                 }`}
                         >
                             <div className="flex items-center gap-4">
@@ -209,6 +293,13 @@ export const ActiveSessions: React.FC = () => {
                     ))}
                 </div>
             )}
+
+            <LogoutAllModal
+                isOpen={showLogoutAllModal}
+                loading={logoutAllLoading}
+                onConfirm={handleLogoutAllDevices}
+                onCancel={() => setShowLogoutAllModal(false)}
+            />
         </div>
     );
 };
