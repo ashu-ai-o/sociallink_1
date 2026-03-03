@@ -176,16 +176,25 @@ def process_entry(entry):
     }
     """
     instagram_account_id = entry.get('id')
-    
-    # Get Instagram account from database
+
+    # Get Instagram account from database.
+    # Comment webhooks use entry.id = instagram_user_id.
+    # DM/messaging webhooks via facebook_graph connection use entry.id = page_id.
+    # We must try both so that messaging events are never silently dropped.
     try:
         instagram_account = InstagramAccount.objects.get(
             instagram_user_id=instagram_account_id,
             is_active=True
         )
     except InstagramAccount.DoesNotExist:
-        logger.warning(f'Instagram account {instagram_account_id} not found')
-        return
+        try:
+            instagram_account = InstagramAccount.objects.get(
+                page_id=instagram_account_id,
+                is_active=True
+            )
+        except InstagramAccount.DoesNotExist:
+            logger.warning(f'Instagram account not found for entry id {instagram_account_id} (tried instagram_user_id and page_id)')
+            return
     
     # Process changes (comments, etc.)
     if 'changes' in entry:
