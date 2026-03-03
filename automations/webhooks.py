@@ -180,7 +180,7 @@ def handle_webhook(request):
 def process_entry(entry):
     """
     Process a single webhook entry
-    
+
     Entry structure:
     {
         "id": "instagram_account_id",
@@ -189,6 +189,14 @@ def process_entry(entry):
     }
     """
     instagram_account_id = entry.get('id')
+    logger.info(f'[ENTRY] entry.id from Meta = "{instagram_account_id}"')
+
+    # Log all active accounts so we can compare in logs
+    known = list(InstagramAccount.objects.filter(is_active=True).values_list(
+        'username', 'instagram_user_id', 'page_id'
+    ))
+    for uname, uid, pid in known:
+        logger.info(f'[ENTRY] DB account @{uname}: instagram_user_id={uid}, page_id={pid}')
 
     # Get Instagram account from database
     # For instagram_platform connections, entry.id == instagram_user_id
@@ -198,6 +206,7 @@ def process_entry(entry):
             instagram_user_id=instagram_account_id,
             is_active=True
         )
+        logger.info(f'[ENTRY] Matched via instagram_user_id → @{instagram_account.username}')
     except InstagramAccount.DoesNotExist:
         # Fallback: try matching by page_id (used by facebook_graph connection method)
         try:
@@ -205,9 +214,12 @@ def process_entry(entry):
                 page_id=instagram_account_id,
                 is_active=True
             )
-            logger.info(f'[WEBHOOK] Matched account via page_id: {instagram_account_id} → @{instagram_account.username}')
+            logger.info(f'[ENTRY] Matched via page_id → @{instagram_account.username}')
         except InstagramAccount.DoesNotExist:
-            logger.warning(f'[WEBHOOK] No active account found for entry id {instagram_account_id} (tried instagram_user_id and page_id)')
+            logger.warning(
+                f'[ENTRY] NO MATCH for entry.id="{instagram_account_id}". '
+                f'Known accounts: {[(u, i, p) for u, i, p in known]}'
+            )
             return
     
     # Process changes (comments, etc.)
@@ -263,16 +275,22 @@ def handle_comment(comment_data, instagram_account):
     user_id = from_user.get('id')
     username = from_user.get('username', '')
     
-    logger.info(f'[COMMENT] New comment from @{username}: "{comment_text}"')
-    
+    logger.info(f'[COMMENT] New comment from @{username} (id={user_id}): "{comment_text}" on media_id={media_id}')
+
     # Find matching automations
     automations = Automation.objects.filter(
         instagram_account=instagram_account,
         is_active=True,
         trigger_type='comment'
     )
-    
+    logger.info(f'[COMMENT] Found {automations.count()} active comment automation(s) for @{instagram_account.username}')
+
     for automation in automations:
+        logger.info(
+            f'[COMMENT] Checking automation "{automation.name}": '
+            f'target_posts={automation.target_posts}, '
+            f'keywords={automation.trigger_keywords}, match={automation.trigger_match_type}'
+        )
         # Check if comment matches triggers
         if should_trigger_automation(automation, comment_text, media_id):
             # Create trigger record
