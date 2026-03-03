@@ -317,7 +317,8 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     dm_result = await instagram_service.send_dm(
         recipient_id=trigger.instagram_user_id,
         message=message,
-        buttons=automation.dm_buttons
+        buttons=automation.dm_buttons,
+        comment_id=trigger.comment_id or None
     )
     
     # ═══════════════════════════════════════════════════════════
