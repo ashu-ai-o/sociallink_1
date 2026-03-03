@@ -192,6 +192,33 @@ else:
             print("     Check: does the keyword match the automation trigger keywords?")
             print("     Check: does the post_id match the automation target_posts?")
 
+# ── 6. Show webhook_raw.log (what Meta actually sent) ─────────────
+print("\n[6] Last entries in webhook_raw.log (real Meta deliveries)...")
+import os
+log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'webhook_raw.log')
+if not os.path.exists(log_path):
+    print("  (file not found — no real Meta webhooks received yet, OR server not restarted)")
+    print("  → Restart Django, then comment on the post, then check this file.")
+else:
+    size = os.path.getsize(log_path)
+    print(f"  Log file: {log_path}  ({size} bytes)")
+    with open(log_path, 'r') as f:
+        content = f.read()
+    entries = content.strip().split('\n--- ')
+    last = entries[-3:] if len(entries) >= 3 else entries
+    for e in last:
+        print('\n  ---', e[:600])  # print last 3 entries, capped at 600 chars each
+
 print("\n" + "=" * 60)
 print("DIAGNOSTIC COMPLETE")
 print("=" * 60)
+print()
+print("KEY QUESTIONS to check manually:")
+print("  A. Is ngrok running and the URL registered in Meta Developer Portal?")
+print("     Every time ngrok restarts it gets a NEW URL — Meta must be updated.")
+print("  B. Open Meta Developer Portal → Webhooks → Instagram → confirm the callback URL.")
+print("  C. Are you commenting on the EXACT post in target_posts above?")
+print("  D. Does your comment contain the EXACT keyword above?")
+print("  E. After commenting, wait 5s then re-run this script — does webhook_raw.log grow?")
+print("     If NOT: Meta is not delivering — check ngrok URL + subscription.")
+print("     If YES but triggers=0: entry id mismatch or keyword/post mismatch.")

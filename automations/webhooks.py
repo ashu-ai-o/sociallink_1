@@ -129,9 +129,22 @@ def handle_webhook(request):
     Process incoming webhook events from Instagram
     """
     logger.info(f'[WEBHOOK] Received: {request.method} request to {request.path}')
-    
+
+    # Log raw payload to file so we can inspect what Meta actually sends
+    try:
+        import os
+        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'webhook_raw.log')
+        with open(log_path, 'a') as f:
+            import datetime
+            f.write(f'\n--- {datetime.datetime.now().isoformat()} ---\n')
+            f.write(f'SIG: {request.headers.get("X-Hub-Signature-256","(none)")}\n')
+            f.write(request.body.decode('utf-8', errors='replace') + '\n')
+    except Exception:
+        pass
+
     # 1. Verify signature
     if not verify_signature(request):
+        logger.error(f'[WEBHOOK] Signature verification FAILED — returning 403')
         return JsonResponse({'error': 'Invalid signature'}, status=403)
     
     try:
