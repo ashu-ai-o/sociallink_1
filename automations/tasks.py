@@ -341,16 +341,26 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
         await automation.asave()
         
         # Update contact record
-        contact, created = await Contact.objects.aupdate_or_create(
+        # NOTE: 'created' cannot be used inside defaults — it's only assigned after
+        # aupdate_or_create returns. Use a two-step approach instead.
+        contact, contact_created = await Contact.objects.aupdate_or_create(
             instagram_account=instagram_account,
             instagram_user_id=trigger.instagram_user_id,
             defaults={
                 'instagram_username': trigger.instagram_username,
-                'total_interactions': 1 if created else F('total_interactions') + 1,
-                'total_dms_received': 1 if created else F('total_dms_received') + 1,
                 'last_interaction': timezone.now()
             }
         )
+        # Increment counters now that we know whether the record is new or existing
+        if contact_created:
+            contact.total_interactions = 1
+            contact.total_dms_received = 1
+            await contact.asave(update_fields=['total_interactions', 'total_dms_received'])
+        else:
+            await Contact.objects.filter(id=contact.id).aupdate(
+                total_interactions=F('total_interactions') + 1,
+                total_dms_received=F('total_dms_received') + 1,
+            )
         
         # Notify success
         await notify_dm_sent(automation, trigger, comment_reply_success)

@@ -59,7 +59,6 @@ export const CreateAutomationPage = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    trigger_type: 'comment' as 'comment' | 'dm_keyword',
     trigger_keywords: [''],
     trigger_match_type: 'contains',
     target_posts: [] as string[], // ← stores selected Instagram media IDs
@@ -116,7 +115,7 @@ export const CreateAutomationPage = () => {
           ...formData,
           trigger_keywords: formData.trigger_keywords.filter((k) => k.trim()),
           dm_buttons: formData.dm_buttons.filter((b) => b.text && b.url),
-          // trigger_type comes from formData — 'comment' or 'dm_keyword'
+          trigger_type: 'comment',
         })
       ).unwrap();
 
@@ -148,7 +147,6 @@ export const CreateAutomationPage = () => {
       case 2:
         return true; // optional — no posts = all posts
       case 3:
-        if (formData.trigger_type === 'dm_keyword') return true; // N/A for DM keyword automations
         return !formData.enable_comment_reply || formData.comment_reply_message.trim();
       case 4:
         return formData.DmMessage.trim();
@@ -173,7 +171,7 @@ export const CreateAutomationPage = () => {
           Create Automation
         </h1>
         <p className="text-neutral-600 dark:text-neutral-400">
-          Set up automated responses to Instagram comments or direct messages
+          Set up automated responses to Instagram comments
         </p>
       </div>
 
@@ -300,7 +298,7 @@ const Step1 = ({ formData, setFormData }: any) => (
   <div className="space-y-6">
     <div>
       <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">Name & Triggers</h2>
-      <p className="text-neutral-600 dark:text-neutral-400">Give your automation a name and choose what activates it</p>
+      <p className="text-neutral-600 dark:text-neutral-400">Give your automation a name and set up trigger keywords</p>
     </div>
 
     <div className="space-y-4">
@@ -316,41 +314,9 @@ const Step1 = ({ formData, setFormData }: any) => (
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Trigger Type</label>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setFormData({ ...formData, trigger_type: 'comment' })}
-            className={`p-4 rounded-xl border-2 text-left transition-all ${
-              formData.trigger_type === 'comment'
-                ? 'border-neutral-900 dark:border-white bg-neutral-50 dark:bg-neutral-800'
-                : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500'
-            }`}
-          >
-            <div className="font-medium text-neutral-900 dark:text-white text-sm mb-1">Comment Trigger</div>
-            <div className="text-xs text-neutral-500 dark:text-neutral-400">Fires when someone comments on a post</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => setFormData({ ...formData, trigger_type: 'dm_keyword' })}
-            className={`p-4 rounded-xl border-2 text-left transition-all ${
-              formData.trigger_type === 'dm_keyword'
-                ? 'border-neutral-900 dark:border-white bg-neutral-50 dark:bg-neutral-800'
-                : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500'
-            }`}
-          >
-            <div className="font-medium text-neutral-900 dark:text-white text-sm mb-1">DM Keyword Trigger</div>
-            <div className="text-xs text-neutral-500 dark:text-neutral-400">Fires when someone messages you directly</div>
-          </button>
-        </div>
-      </div>
-
-      <div>
         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Trigger Keywords</label>
         <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
-          {formData.trigger_type === 'dm_keyword'
-            ? 'When someone sends a DM containing these keywords, the automation activates'
-            : 'When someone comments with these keywords, the automation activates'}
+          When someone comments with these keywords, the automation activates
         </p>
         <div className="space-y-2">
           {formData.trigger_keywords.map((keyword: string, i: number) => (
@@ -409,26 +375,7 @@ const Step1 = ({ formData, setFormData }: any) => (
 );
 
 // ─── Step 2: Target Posts ─────────────────────────────────────────────────────
-const Step2 = ({ formData, posts, postsLoading, postsError, onToggle }: any) => {
-  // DM keyword automations have no post context — skip this step
-  if (formData.trigger_type === 'dm_keyword') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">Target Posts</h2>
-          <p className="text-neutral-600 dark:text-neutral-400">Not applicable for DM keyword automations</p>
-        </div>
-        <div className="flex items-start gap-3 p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
-          <Info className="w-4 h-4 text-neutral-500 dark:text-neutral-400 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            DM keyword automations trigger on incoming direct messages, not post comments. Post targeting doesn't apply — click <strong>Next Step</strong> to continue.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+const Step2 = ({ formData, posts, postsLoading, postsError, onToggle }: any) => (
   <div className="space-y-6">
     <div>
       <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">Target Posts</h2>
@@ -515,30 +462,10 @@ const Step2 = ({ formData, posts, postsLoading, postsError, onToggle }: any) => 
       </div>
     )}
   </div>
-  );
-};
+);
 
 // ─── Step 3: Comment Reply ────────────────────────────────────────────────────
-const Step3 = ({ formData, setFormData }: any) => {
-  // DM keyword automations don't have a comment to reply to — skip this step
-  if (formData.trigger_type === 'dm_keyword') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">Public Comment Reply</h2>
-          <p className="text-neutral-600 dark:text-neutral-400">Not applicable for DM keyword automations</p>
-        </div>
-        <div className="flex items-start gap-3 p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl border border-neutral-200 dark:border-neutral-700">
-          <Info className="w-4 h-4 text-neutral-500 dark:text-neutral-400 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Comment replies are only available for comment-based automations. Click <strong>Next Step</strong> to continue.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+const Step3 = ({ formData, setFormData }: any) => (
   <div className="space-y-6">
     <div>
       <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">Public Comment Reply</h2>
@@ -574,8 +501,7 @@ const Step3 = ({ formData, setFormData }: any) => {
       )}
     </div>
   </div>
-  );
-};
+);
 
 // ─── Step 4: DM Message ───────────────────────────────────────────────────────
 const Step4 = ({ formData, setFormData }: any) => (
@@ -645,13 +571,6 @@ const Step5 = ({ formData, posts }: any) => {
         <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
           <div className="text-sm font-medium text-neutral-500 mb-1">Name</div>
           <div className="text-neutral-900 dark:text-white">{formData.name}</div>
-        </div>
-
-        <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
-          <div className="text-sm font-medium text-neutral-500 mb-1">Trigger Type</div>
-          <div className="text-neutral-900 dark:text-white">
-            {formData.trigger_type === 'dm_keyword' ? 'DM Keyword Trigger' : 'Comment Trigger'}
-          </div>
         </div>
 
         <div className="p-4 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl">
