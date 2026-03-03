@@ -176,16 +176,26 @@ def process_entry(entry):
     }
     """
     instagram_account_id = entry.get('id')
-    
+
     # Get Instagram account from database
+    # For instagram_platform connections, entry.id == instagram_user_id
+    # For facebook_graph connections, entry.id == page_id (Facebook Page ID)
     try:
         instagram_account = InstagramAccount.objects.get(
             instagram_user_id=instagram_account_id,
             is_active=True
         )
     except InstagramAccount.DoesNotExist:
-        logger.warning(f'Instagram account {instagram_account_id} not found')
-        return
+        # Fallback: try matching by page_id (used by facebook_graph connection method)
+        try:
+            instagram_account = InstagramAccount.objects.get(
+                page_id=instagram_account_id,
+                is_active=True
+            )
+            logger.info(f'[WEBHOOK] Matched account via page_id: {instagram_account_id} → @{instagram_account.username}')
+        except InstagramAccount.DoesNotExist:
+            logger.warning(f'[WEBHOOK] No active account found for entry id {instagram_account_id} (tried instagram_user_id and page_id)')
+            return
     
     # Process changes (comments, etc.)
     if 'changes' in entry:
@@ -289,16 +299,17 @@ def handle_comment(comment_data, instagram_account):
 
 def should_trigger_automation(automation, comment_text, post_id):
     """
-    Check if comment should trigger automation
-    
+    Check if comment/message should trigger automation
+
     Checks:
-    1. Target posts (if specified)
+    1. Target posts (if specified) — skipped for dm_keyword (no post context)
     2. Trigger keywords
     3. Match type (exact, contains, any)
     """
-    # Check target posts
-    if automation.target_posts and post_id not in automation.target_posts:
-        return False
+    # Check target posts — dm_keyword automations have no post_id so skip this check
+    if automation.trigger_type != 'dm_keyword':
+        if automation.target_posts and post_id not in automation.target_posts:
+            return False
     
     # Check keywords
     comment_lower = comment_text.lower()
@@ -326,7 +337,7 @@ def should_trigger_automation(automation, comment_text, post_id):
 def process_message(message, instagram_account):
     """
     Process direct message or story reply
-    
+
     Message structure:
     {
         "sender": {"id": "123"},
@@ -340,9 +351,19 @@ def process_message(message, instagram_account):
     """
     sender = message.get('sender', {})
     msg_data = message.get('message', {})
-    
+
     sender_id = sender.get('id')
     text = msg_data.get('text', '')
+
+    # Filter out echo messages: Meta fires a webhook when the account itself sends a DM.
+    # These are identified by the sender being the account's own ID (or page_id for
+    # facebook_graph connections). Ignore them to avoid automation loops.
+    own_ids = {instagram_account.instagram_user_id}
+    if instagram_account.page_id:
+        own_ids.add(instagram_account.page_id)
+    if sender_id in own_ids:
+        logger.debug(f'[WEBHOOK] Ignoring echo message sent by own account ({sender_id})')
+        return
     
     # Handle story mentions
     if 'story_mention' in msg_data:
@@ -402,13 +423,13 @@ def handle_story_reply(sender_id, text, msg_data, instagram_account):
 def handle_dm_keyword(sender_id, text, instagram_account):
     """Handle DM with keyword trigger"""
     logger.info(f'✉️ DM from user {sender_id}: "{text}"')
-    
+
     automations = Automation.objects.filter(
         instagram_account=instagram_account,
         is_active=True,
         trigger_type='dm_keyword'
     )
-    
+
     for automation in automations:
         if should_trigger_automation(automation, text, None):
             trigger = AutomationTrigger.objects.create(
@@ -417,5 +438,23 @@ def handle_dm_keyword(sender_id, text, instagram_account):
                 comment_text=text,
                 status='pending'
             )
-            process_automation_trigger_async.delay(str(trigger.id))
+
+            logger.info(f'[TRIGGER] Created DM trigger {trigger.id} for automation "{automation.name}"')
+
+            # Dispatch to Celery (wrapped — webhook must return 200 even if broker is down)
+            try:
+                process_automation_trigger_async.delay(str(trigger.id))
+                logger.info(f'[TRIGGER] DM task queued for trigger {trigger.id}')
+            except Exception as celery_err:
+                logger.error(
+                    f'[TRIGGER] Failed to queue Celery task for DM trigger {trigger.id}: {celery_err}. '
+                    f'Trigger saved as pending — will retry when broker is available.'
+                )
+
+            # Update automation stats regardless of Celery result
+            try:
+                automation.total_triggers += 1
+                automation.save(update_fields=['total_triggers'])
+            except Exception as save_err:
+                logger.error(f'[TRIGGER] Failed to update DM automation stats: {save_err}')
 
