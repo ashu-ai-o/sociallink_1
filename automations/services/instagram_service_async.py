@@ -41,13 +41,22 @@ class InstagramServiceAsync:
         self,
         recipient_id: str,
         message: str,
-        buttons: List[Dict] = None
+        buttons: List[Dict] = None,
+        comment_id: str = None
     ) -> Dict:
-        """Send DM to user"""
+        """Send DM to user.
+
+        For comment-triggered DMs, pass comment_id so Instagram allows the
+        message even if the user has never messaged the account before.
+        """
         url = f"{self.base_url}/me/messages"
-        
+
+        # Instagram requires comment_id as recipient for comment-triggered DMs.
+        # Using user id directly causes 400 unless the user messaged first.
+        recipient = {"comment_id": comment_id} if comment_id else {"id": recipient_id}
+
         payload = {
-            "recipient": {"id": recipient_id},
+            "recipient": recipient,
             "message": {"text": message}
         }
         
@@ -95,14 +104,14 @@ class InstagramServiceAsync:
         """
         url = f"{self.base_url}/{comment_id}/replies"
         
-        payload = {
+        form_data = {
             "message": reply_message
         }
         
         params = {"access_token": self.access_token}
         
         try:
-            response = await self.client.post(url, json=payload, params=params)
+            response = await self.client.post(url, data=form_data, params=params)
             response.raise_for_status()
             data = response.json()
             
