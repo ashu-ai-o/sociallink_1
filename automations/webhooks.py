@@ -176,15 +176,23 @@ def process_entry(entry):
     }
     """
     instagram_account_id = entry.get('id')
-    
-    # Get Instagram account from database
-    try:
-        instagram_account = InstagramAccount.objects.get(
-            instagram_user_id=instagram_account_id,
-            is_active=True
+
+    # entry.id maps to different fields depending on connection method:
+    #   facebook_graph  — comments  → instagram_user_id
+    #   facebook_graph  — DMs       → page_id
+    #   instagram_platform — all    → platform_id
+    # Try all three so no webhook is silently dropped regardless of connection type.
+    instagram_account = (
+        InstagramAccount.objects.filter(instagram_user_id=instagram_account_id, is_active=True).first()
+        or InstagramAccount.objects.filter(platform_id=instagram_account_id, is_active=True).first()
+        or InstagramAccount.objects.filter(page_id=instagram_account_id, is_active=True).first()
+    )
+
+    if not instagram_account:
+        logger.warning(
+            f'Instagram account not found for entry id {instagram_account_id} '
+            f'(tried instagram_user_id, platform_id, page_id)'
         )
-    except InstagramAccount.DoesNotExist:
-        logger.warning(f'Instagram account {instagram_account_id} not found')
         return
     
     # Process changes (comments, etc.)
@@ -343,7 +351,12 @@ def process_message(message, instagram_account):
     
     sender_id = sender.get('id')
     text = msg_data.get('text', '')
-    
+
+    # Ignore echo messages — these are messages the account sent (echoed back by Instagram)
+    if sender_id == instagram_account.instagram_user_id:
+        logger.debug(f'[DM] Ignoring echo message from own account {sender_id}')
+        return
+
     # Handle story mentions
     if 'story_mention' in msg_data:
         handle_story_mention(sender_id, msg_data, instagram_account)
@@ -402,13 +415,13 @@ def handle_story_reply(sender_id, text, msg_data, instagram_account):
 def handle_dm_keyword(sender_id, text, instagram_account):
     """Handle DM with keyword trigger"""
     logger.info(f'✉️ DM from user {sender_id}: "{text}"')
-    
+
     automations = Automation.objects.filter(
         instagram_account=instagram_account,
         is_active=True,
         trigger_type='dm_keyword'
     )
-    
+
     for automation in automations:
         if should_trigger_automation(automation, text, None):
             trigger = AutomationTrigger.objects.create(
@@ -417,5 +430,18 @@ def handle_dm_keyword(sender_id, text, instagram_account):
                 comment_text=text,
                 status='pending'
             )
-            process_automation_trigger_async.delay(str(trigger.id))
 
+            try:
+                process_automation_trigger_async.delay(str(trigger.id))
+                logger.info(f'[TRIGGER] Task queued for DM trigger {trigger.id}')
+            except Exception as celery_err:
+                logger.error(
+                    f'[TRIGGER] Failed to queue Celery task for DM trigger {trigger.id}: {celery_err}. '
+                    f'Trigger saved as pending — will retry when broker is available.'
+                )
+
+            try:
+                automation.total_triggers += 1
+                automation.save(update_fields=['total_triggers'])
+            except Exception as save_err:
+                logger.error(f'[TRIGGER] Failed to update automation stats: {save_err}')
