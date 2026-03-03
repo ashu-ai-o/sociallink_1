@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { TwoFactorSetup } from '../components/Security/TwoFactorSetup';
 import { ActiveSessions } from '../components/Security/ActiveSessions';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface InstagramAccount {
   id: string;
@@ -48,6 +49,7 @@ export const SettingsPage: React.FC = () => {
     bio: '',
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [disconnectTarget, setDisconnectTarget] = useState<{ id: string; username: string } | null>(null);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [notifPreferences, setNotifPreferences] = useState({
     weekly_reports: true,
@@ -207,15 +209,20 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleDisconnect = async (accountId: string, username: string) => {
-    if (confirm(`Are you sure you want to disconnect @${username}?`)) {
-      try {
-        await api.disconnectInstagram(accountId);
-        await loadAccounts();
-        toast.success('Account disconnected');
-      } catch (error) {
-        toast.error('Failed to disconnect account');
-      }
+  const handleDisconnect = (accountId: string, username: string) => {
+    setDisconnectTarget({ id: accountId, username });
+  };
+
+  const confirmDisconnect = async () => {
+    if (!disconnectTarget) return;
+    try {
+      await api.disconnectInstagram(disconnectTarget.id);
+      await loadAccounts();
+      toast.success('Account disconnected');
+    } catch (error) {
+      toast.error('Failed to disconnect account');
+    } finally {
+      setDisconnectTarget(null);
     }
   };
 
@@ -620,6 +627,17 @@ export const SettingsPage: React.FC = () => {
 
       {/* Delete Account Modal */}
       <DeleteAccountModal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} />
+
+      {/* Disconnect Instagram Confirm Modal */}
+      <ConfirmModal
+        open={!!disconnectTarget}
+        title="Disconnect Account"
+        message={`Are you sure you want to disconnect @${disconnectTarget?.username}? You can reconnect it at any time.`}
+        confirmLabel="Disconnect"
+        variant="danger"
+        onConfirm={confirmDisconnect}
+        onCancel={() => setDisconnectTarget(null)}
+      />
     </div>
   );
 };

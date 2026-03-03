@@ -14,6 +14,7 @@ import {
   Loader2,
   ImageOff,
   Info,
+  Instagram,
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { updateAutomation } from '../../store/slices/automationsSlice';
@@ -42,10 +43,15 @@ export const EditAutomationPage = () => {
 
   // Fetch connected accounts from API (as fallback when automation.instagram_account is not set)
   const [igAccounts, setIgAccounts] = useState<any[]>([]);
+  const [checkingAccounts, setCheckingAccounts] = useState(true);
+
   useEffect(() => {
+    setCheckingAccounts(true);
     api.getInstagramAccounts().then((data: any) => {
-      setIgAccounts(Array.isArray(data) ? data : (data.results || []));
-    }).catch(console.error);
+      const allAccounts = Array.isArray(data) ? data : (data.results || []);
+      setIgAccounts(allAccounts.filter((acc: any) => acc.is_active !== false));
+    }).catch(console.error)
+      .finally(() => setCheckingAccounts(false));
   }, []);
 
   // Post picker state
@@ -168,86 +174,120 @@ export const EditAutomationPage = () => {
         </p>
       </div>
 
-      {/* Progress Steps */}
-      <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
-        {steps.map((s, i) => (
-          <div key={s.number} className="flex items-center flex-1 min-w-0">
-            <div className="flex flex-col items-center flex-1">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all flex-shrink-0 ${step > s.number
-                  ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
-                  : step === s.number
-                    ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 ring-4 ring-neutral-200 dark:ring-neutral-800'
-                    : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-500'
-                  }`}
-              >
-                {step > s.number ? <Check className="w-5 h-5" /> : s.number}
+      {checkingAccounts ? (
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 border border-neutral-200 dark:border-neutral-800 flex flex-col items-center justify-center text-center">
+          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+          <h3 className="text-lg font-medium text-neutral-900 dark:text-white mb-1">Checking your accounts</h3>
+          <p className="text-neutral-500 dark:text-neutral-400">Please wait a moment...</p>
+        </div>
+      ) : igAccounts.length === 0 ? (
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl p-12 border border-neutral-200 dark:border-neutral-800 flex flex-col items-center justify-center text-center animate-scale-in">
+          <div className="w-20 h-20 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-6">
+            <Instagram className="w-10 h-10 text-neutral-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-3">No Instagram Account Connected</h2>
+          <p className="text-neutral-600 dark:text-neutral-400 mb-8 max-w-sm">
+            The account associated with this automation is no longer connected. Please reconnect in settings to manage your automations.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate('/settings')}
+              className="px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-xl font-medium hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Connect an Account
+            </button>
+            <button
+              onClick={() => navigate('/automations')}
+              className="px-6 py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
+            {steps.map((s, i) => (
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all flex-shrink-0 ${step > s.number
+                      ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                      : step === s.number
+                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 ring-4 ring-neutral-200 dark:ring-neutral-800'
+                        : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-500'
+                      }`}
+                  >
+                    {step > s.number ? <Check className="w-5 h-5" /> : s.number}
+                  </div>
+                  <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mt-2 text-center hidden sm:block whitespace-nowrap">
+                    {s.title}
+                  </div>
+                </div>
+                {i < steps.length - 1 && (
+                  <div
+                    className={`h-0.5 flex-1 mx-2 transition-colors ${step > s.number ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-800'
+                      }`}
+                  />
+                )}
               </div>
-              <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400 mt-2 text-center hidden sm:block whitespace-nowrap">
-                {s.title}
-              </div>
-            </div>
-            {i < steps.length - 1 && (
-              <div
-                className={`h-0.5 flex-1 mx-2 transition-colors ${step > s.number ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-800'
-                  }`}
+            ))}
+          </div>
+
+          {/* Form Card */}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-8 border border-neutral-200 dark:border-neutral-800 mb-8">
+            {step === 1 && <Step1 formData={formData} setFormData={setFormData} />}
+            {step === 2 && (
+              <Step2
+                formData={formData}
+                posts={posts}
+                postsLoading={postsLoading}
+                postsError={postsError}
+                onToggle={togglePost}
               />
             )}
+            {step === 3 && <Step3 formData={formData} setFormData={setFormData} />}
+            {step === 4 && <Step4 formData={formData} setFormData={setFormData} />}
+            {step === 5 && <Step5 formData={formData} posts={posts} />}
           </div>
-        ))}
-      </div>
 
-      {/* Form Card */}
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-8 border border-neutral-200 dark:border-neutral-800 mb-8">
-        {step === 1 && <Step1 formData={formData} setFormData={setFormData} />}
-        {step === 2 && (
-          <Step2
-            formData={formData}
-            posts={posts}
-            postsLoading={postsLoading}
-            postsError={postsError}
-            onToggle={togglePost}
-          />
-        )}
-        {step === 3 && <Step3 formData={formData} setFormData={setFormData} />}
-        {step === 4 && <Step4 formData={formData} setFormData={setFormData} />}
-        {step === 5 && <Step5 formData={formData} posts={posts} />}
-      </div>
+          {/* Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setStep(Math.max(1, step - 1))}
+              disabled={step === 1}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Previous
+            </button>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setStep(Math.max(1, step - 1))}
-          disabled={step === 1}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Previous
-        </button>
-
-        {step < 5 ? (
-          <button
-            onClick={() => setStep(Math.min(5, step + 1))}
-            disabled={!canProgress()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg font-medium hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Next Step
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg font-medium hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+            {step < 5 ? (
+              <button
+                onClick={() => setStep(Math.min(5, step + 1))}
+                disabled={!canProgress()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg font-medium hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Next Step
+                <ArrowRight className="w-4 h-4" />
+              </button>
             ) : (
-              <><Check className="w-5 h-5" /> Save Changes</>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg font-medium hover:bg-neutral-800 dark:hover:bg-neutral-100 transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {loading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                ) : (
+                  <><Check className="w-5 h-5" /> Save Changes</>
+                )}
+              </button>
             )}
-          </button>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

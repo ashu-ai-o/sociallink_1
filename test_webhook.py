@@ -1,49 +1,47 @@
-import os
+import os, django, json
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+django.setup()
+
 import requests
-import json
-import hmac
-import hashlib
-from dotenv import load_dotenv
 
-load_dotenv()
-
-secret = os.getenv('INSTAGRAM_CLIENT_SECRET', '')
-print(f"Using Secret: {secret[:5]}...")
+# Simulate a webhook POST the same way Meta would send it
+# Uses the DEBUG bypass signature 'any' which the webhook handler allows
+url = "http://localhost:8000/api/webhooks/instagram/"
 
 payload = {
-    "object": "instagram",
-    "entry": [
-        {
-            "id": "123456789",
-            "time": 1612345678,
-            "messaging": [
-                {
-                    "sender": {"id": "123"},
-                    "recipient": {"id": "456"},
-                    "timestamp": 1612345678,
-                    "message": {
-                        "mid": "msg_123",
-                        "text": "test webhook"
-                    }
+    "entry": [{
+        "id": "25831541729844493",  # wanderwithraconz IG user ID
+        "time": 1234567890,
+        "changes": [{
+            "field": "comments",
+            "value": {
+                "id": "test_comment_999",
+                "media_id": "18148423327459502",  # target post in automation
+                "text": "send link please",
+                "from": {
+                    "id": "111222333",
+                    "username": "testcommentor"
                 }
-            ]
-        }
-    ]
+            }
+        }]
+    }]
 }
-
-payload_bytes = json.dumps(payload).encode('utf-8')
-signature = hmac.new(secret.encode('utf-8'), payload_bytes, hashlib.sha256).hexdigest()
-
-print(f"Signature: sha256={signature}")
 
 headers = {
-    'Content-Type': 'application/json',
-    'X-Hub-Signature-256': f'sha256={signature}'
+    "Content-Type": "application/json",
+    "X-Hub-Signature-256": "sha256=any"  # DEBUG bypass
 }
 
+print("Sending test webhook...")
 try:
-    r = requests.post('http://localhost:8000/api/webhooks/instagram/', data=payload_bytes, headers=headers)
-    print(f"Status: {r.status_code}")
-    print(f"Response: {r.text}")
+    resp = requests.post(url, json=payload, headers=headers, timeout=10)
+    print(f"Status: {resp.status_code}")
+    print(f"Response: {resp.text}")
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"ERROR: {e}")
+
+print()
+print("=== Checking for new triggers ===")
+from automations.models import AutomationTrigger
+for t in AutomationTrigger.objects.order_by('-created_at')[:5]:
+    print(f"  {t.created_at.strftime('%H:%M:%S')} | status={t.status} | @{t.instagram_username} | '{t.comment_text}' | err='{t.error_message[:80]}'")

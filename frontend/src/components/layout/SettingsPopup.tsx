@@ -10,6 +10,7 @@ import { useAppDispatch, useAppSelector } from '../../hooks';
 import { closeSettings, setSettingsTab } from '../../store/slices/uiSlice';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { ConfirmModal } from '../ConfirmModal';
 
 interface InstagramAccount {
   id: string;
@@ -30,6 +31,7 @@ export const SettingsPopup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [instagramAccounts, setInstagramAccounts] = useState<InstagramAccount[]>([]);
   const [aiProviders, setAIProviders] = useState<any>(null);
+  const [disconnectTarget, setDisconnectTarget] = useState<string | null>(null);
 
   // Form states
   const [profileData, setProfileData] = useState({
@@ -152,17 +154,20 @@ export const SettingsPopup: React.FC = () => {
     }
   };
 
-  const handleDisconnectInstagram = async (accountId: string) => {
-    if (!confirm('Are you sure you want to disconnect this Instagram account?')) {
-      return;
-    }
+  const handleDisconnectInstagram = (accountId: string) => {
+    setDisconnectTarget(accountId);
+  };
 
+  const confirmDisconnectInstagram = async () => {
+    if (!disconnectTarget) return;
     try {
-      await api.disconnectInstagramAccount(accountId);
+      await api.disconnectInstagramAccount(disconnectTarget);
       toast.success('Instagram account disconnected');
       fetchInstagramAccounts();
     } catch (error) {
       toast.error('Failed to disconnect account');
+    } finally {
+      setDisconnectTarget(null);
     }
   };
 
@@ -313,6 +318,17 @@ export const SettingsPopup: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Disconnect Confirm Modal */}
+      <ConfirmModal
+        open={!!disconnectTarget}
+        title="Disconnect Account"
+        message="Are you sure you want to disconnect this Instagram account? You can reconnect it at any time."
+        confirmLabel="Disconnect"
+        variant="danger"
+        onConfirm={confirmDisconnectInstagram}
+        onCancel={() => setDisconnectTarget(null)}
+      />
     </div>
   );
 };

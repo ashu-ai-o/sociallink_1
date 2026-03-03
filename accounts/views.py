@@ -2880,8 +2880,8 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filter by current user"""
-        return InstagramAccount.objects.filter(user=self.request.user)
+        """Filter by current user — only return active accounts."""
+        return InstagramAccount.objects.filter(user=self.request.user, is_active=True)
 
     @action(detail=True, methods=['get'])
     def posts(self, request, pk=None):
@@ -3063,16 +3063,42 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def disconnect(self, request, pk=None):
         """
-        Disconnect Instagram account
+        Disconnect Instagram account:
+        1. Revoke the token from Meta/Instagram so the app truly loses access.
+        2. Delete the local DB record so it disappears from the UI.
         POST /api/instagram-accounts/{id}/disconnect/
         """
+        import requests as req
         instagram_account = self.get_object()
-        instagram_account.is_active = False
-        instagram_account.save()
-        
-        return Response({
-            'message': 'Instagram account disconnected'
-        })
+        token = instagram_account.access_token
+        connection_method = instagram_account.connection_method
+
+        # ── 1. Revoke token from Meta / Instagram ──────────────────────────
+        try:
+            if connection_method == 'instagram_platform':
+                # Instagram Platform API — revoke via graph.instagram.com
+                req.delete(
+                    f'https://graph.instagram.com/{instagram_account.instagram_user_id}/permissions',
+                    params={'access_token': token},
+                    timeout=10,
+                )
+            else:
+                # Facebook Graph API — revoke via graph.facebook.com
+                req.delete(
+                    f'https://graph.facebook.com/{instagram_account.instagram_user_id}/permissions',
+                    params={'access_token': token},
+                    timeout=10,
+                )
+        except Exception as e:
+            # Log but don't block the disconnect — local cleanup must still happen
+            logger.warning(f"Token revocation failed for @{instagram_account.username}: {e}")
+
+        # ── 2. Delete local record ─────────────────────────────────────────
+        username = instagram_account.username
+        instagram_account.delete()
+        logger.info(f"Disconnected & deleted Instagram account @{username} for user {request.user.id}")
+
+        return Response({'message': 'Instagram account disconnected successfully'})
     
     @action(detail=True, methods=['post'])
     def reconnect(self, request, pk=None):

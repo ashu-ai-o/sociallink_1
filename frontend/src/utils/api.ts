@@ -293,7 +293,7 @@ class ApiClient {
   }
 
   async disconnectInstagramAccount(id: string) {
-    await this.client.delete(`/instagram-accounts/${id}/disconnect/`);
+    await this.client.post(`/instagram-accounts/${id}/disconnect/`);
   }
 
   // Instagram OAuth
@@ -303,7 +303,7 @@ class ApiClient {
   }
 
   async disconnectInstagram(accountId: string) {
-    const response = await this.client.delete(`/instagram-accounts/${accountId}/disconnect/`);
+    const response = await this.client.post(`/instagram-accounts/${accountId}/disconnect/`);
     return response.data;
   }
 

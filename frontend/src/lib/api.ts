@@ -44,7 +44,7 @@ class ApiClient {
             const { access } = response.data;
             localStorage.setItem('access_token', access);
             originalRequest.headers.Authorization = `Bearer ${access}`;
-            
+
             return this.client(originalRequest);
           } catch (refreshError) {
             localStorage.removeItem('access_token');
@@ -90,7 +90,7 @@ class ApiClient {
   }
 
   async disconnectInstagramAccount(id: string) {
-    await this.client.delete(`/instagram-accounts/${id}/`);
+    await this.client.post(`/instagram-accounts/${id}/disconnect/`);
   }
 
   // Automations
@@ -208,7 +208,7 @@ class ApiClient {
   }
 
   async disconnectInstagram(accountId: string) {
-    const response = await this.client.delete(`/instagram-accounts/${accountId}/disconnect/`);
+    const response = await this.client.post(`/instagram-accounts/${accountId}/disconnect/`);
     return response.data;
   }
 

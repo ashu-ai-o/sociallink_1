@@ -40,7 +40,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.spl
 # In DEBUG mode, allow all ngrok tunnels automatically (URL changes on every restart)
 if DEBUG:
     ALLOWED_HOSTS += [
-        '.ngrok-free.app',   # Free ngrok tunnels (wildcard)
+        '.ngrok-free.app',   # Free ngrok tunnels (wildcard subdomain)
         '.ngrok.io',         # Paid ngrok tunnels
         'localhost',
         '127.0.0.1',
