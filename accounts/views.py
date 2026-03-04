@@ -2773,6 +2773,19 @@ def instagram_platform_oauth_callback(request):
             connection_method='instagram_platform'
         )
 
+        # 5. Subscribe account to receive webhook events (required for Meta to route webhooks)
+        sub_response = requests.post(
+            f"https://graph.instagram.com/v21.0/{platform_user_id}/subscribed_apps",
+            params={
+                'subscribed_fields': 'comments,messages',
+                'access_token': long_lived_token
+            }
+        )
+        if sub_response.ok:
+            logger.info(f"[WEBHOOK] Subscribed Instagram account {platform_user_id} to webhook events")
+        else:
+            logger.warning(f"[WEBHOOK] Failed to subscribe account {platform_user_id} to webhook events: {sub_response.text}")
+
         return _popup_response(True)
 
     except Exception as e:
