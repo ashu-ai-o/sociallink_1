@@ -263,7 +263,7 @@ Test if token works:
 import requests
 
 account = InstagramAccount.objects.first()
-url = f"https://graph.facebook.com/v21.0/{account.instagram_user_id}"
+url = f"https://graph.facebook.com/v25.0/{account.instagram_user_id}"
 params = {
     'access_token': account.access_token,
     'fields': 'username,followers_count'

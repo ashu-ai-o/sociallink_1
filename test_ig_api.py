@@ -10,7 +10,7 @@ from accounts.models import InstagramAccount
 from automations.models import AutomationTrigger
 
 async def amain(act):
-    base_url = 'https://graph.instagram.com/v21.0'
+    base_url = 'https://graph.instagram.com/v25.0'
     
     # We need a real comment ID to test Comment Reply or Private Reply.
     # Let's see if we can get a comment from a post

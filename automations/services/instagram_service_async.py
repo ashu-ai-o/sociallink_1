@@ -25,9 +25,9 @@ class InstagramServiceAsync:
         
         # Choose correct base URL based on connection method
         if connection_method == 'instagram_platform':
-            self.base_url = 'https://graph.instagram.com/v21.0'
+            self.base_url = 'https://graph.instagram.com/v25.0'
         else:
-            self.base_url = 'https://graph.facebook.com/v21.0'
+            self.base_url = 'https://graph.facebook.com/v25.0'
         
         self.client = httpx.AsyncClient(
             timeout=30.0,

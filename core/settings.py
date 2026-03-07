@@ -314,7 +314,7 @@ ANTHROPIC_API_KEY = config('ANTHROPIC_API_KEY', default='')
 # INSTAGRAM API CONFIGURATION
 # ============================================================================
 
-INSTAGRAM_API_VERSION = 'v21.0'
+INSTAGRAM_API_VERSION = 'v25.0'
 INSTAGRAM_GRAPH_API_URL = f'https://graph.facebook.com/{INSTAGRAM_API_VERSION}'
 INSTAGRAM_MAX_DMS_PER_HOUR = 100  # Rate limit per account
 
