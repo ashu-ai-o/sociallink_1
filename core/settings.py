@@ -238,6 +238,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'automations.tasks.check_comments_bulk_async',
         'schedule': 30.0,
     },
+    # Refresh Instagram Platform API tokens daily — tokens last 60 days, refresh when < 15 days left
+    'refresh-instagram-tokens-daily': {
+        'task': 'automations.tasks.refresh_instagram_tokens',
+        'schedule': 86400.0,  # every 24 hours
+    },
 }
 
 
@@ -314,7 +319,7 @@ ANTHROPIC_API_KEY = config('ANTHROPIC_API_KEY', default='')
 # INSTAGRAM API CONFIGURATION
 # ============================================================================
 
-INSTAGRAM_API_VERSION = 'v21.0'
+INSTAGRAM_API_VERSION = 'v25.0'
 INSTAGRAM_GRAPH_API_URL = f'https://graph.facebook.com/{INSTAGRAM_API_VERSION}'
 INSTAGRAM_MAX_DMS_PER_HOUR = 100  # Rate limit per account
 
@@ -536,4 +541,3 @@ SESSION_COOKIE_SECURE = not DEBUG  # Only send session cookie over HTTPS
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF
 SESSION_COOKIE_AGE = 86400  # 24 hours
-

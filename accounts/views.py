@@ -2366,7 +2366,7 @@ def instagram_oauth_initiate(request):
         'response_type': 'code',
         'state': state_token,
     })
-    oauth_url = f"https://www.facebook.com/v21.0/dialog/oauth?{oauth_params}"
+    oauth_url = f"https://www.facebook.com/v25.0/dialog/oauth?{oauth_params}"
 
     logger.info(f"Initiating Instagram OAuth for user {request.user.id}")
 
@@ -2477,7 +2477,7 @@ def exchange_code_for_token(code):
     backend_url = settings.BACKEND_URL.rstrip('/')
     redirect_uri = f"{backend_url}/api/auth/instagram/callback/"
     
-    url = "https://graph.facebook.com/v21.0/oauth/access_token"
+    url = "https://graph.facebook.com/v25.0/oauth/access_token"
     params = {
         'client_id': settings.FACEBOOK_APP_ID,
         'client_secret': settings.FACEBOOK_APP_SECRET,
@@ -2508,7 +2508,7 @@ def exchange_for_long_lived_token(short_lived_token):
     """
     Exchange short-lived token (1 hour) for long-lived token (60 days)
     """
-    url = "https://graph.facebook.com/v21.0/oauth/access_token"
+    url = "https://graph.facebook.com/v25.0/oauth/access_token"
     params = {
         'grant_type': 'fb_exchange_token',
         'client_id': settings.FACEBOOK_APP_ID,
@@ -2531,7 +2531,7 @@ def get_instagram_account_info(access_token):
     Fetch Instagram account information using access token
     """
     # First, get connected Facebook pages
-    url = "https://graph.facebook.com/v21.0/me/accounts"
+    url = "https://graph.facebook.com/v25.0/me/accounts"
     params = {
         'access_token': access_token,
         'fields': 'id,name,access_token'
@@ -2552,7 +2552,7 @@ def get_instagram_account_info(access_token):
         page_access_token = page['access_token']
         
         # Get Instagram Business Account
-        ig_url = f"https://graph.facebook.com/v21.0/{page_id}"
+        ig_url = f"https://graph.facebook.com/v25.0/{page_id}"
         ig_params = {
             'access_token': page_access_token,
             'fields': 'instagram_business_account'
@@ -2569,7 +2569,7 @@ def get_instagram_account_info(access_token):
         instagram_user_id = ig_business_account['id']
         
         # Get Instagram account details
-        details_url = f"https://graph.facebook.com/v21.0/{instagram_user_id}"
+        details_url = f"https://graph.facebook.com/v25.0/{instagram_user_id}"
         details_params = {
             'access_token': page_access_token,
             'fields': 'id,username,profile_picture_url,followers_count'
@@ -2749,7 +2749,7 @@ def instagram_platform_oauth_callback(request):
         expires_in = ll_data.get('expires_in', 5184000) # ~60 days
 
         # 3. Get User Profile Information
-        profile_response = requests.get(f"https://graph.instagram.com/v21.0/{platform_user_id}", params={
+        profile_response = requests.get(f"https://graph.instagram.com/v25.0/{platform_user_id}", params={
             'fields': 'id,username,name,profile_picture_url,followers_count',
             'access_token': long_lived_token
         })
@@ -2772,6 +2772,19 @@ def instagram_platform_oauth_callback(request):
             instagram_data=instagram_data,
             connection_method='instagram_platform'
         )
+
+        # 5. Subscribe account to receive webhook events (required for Meta to route webhooks)
+        sub_response = requests.post(
+            f"https://graph.instagram.com/v25.0/{platform_user_id}/subscribed_apps",
+            params={
+                'subscribed_fields': 'comments,messages',
+                'access_token': long_lived_token
+            }
+        )
+        if sub_response.ok:
+            logger.info(f"[WEBHOOK] Subscribed Instagram account {platform_user_id} to webhook events")
+        else:
+            logger.warning(f"[WEBHOOK] Failed to subscribe account {platform_user_id} to webhook events: {sub_response.text}")
 
         return _popup_response(True)
 
@@ -2833,7 +2846,7 @@ def refresh_instagram_stats(request, account_id):
         )
         
         # Fetch latest stats
-        url = f"https://graph.facebook.com/v21.0/{account.instagram_user_id}"
+        url = f"https://graph.facebook.com/v25.0/{account.instagram_user_id}"
         params = {
             'access_token': account.access_token,
             'fields': 'followers_count,profile_picture_url'
@@ -2898,14 +2911,14 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
 
             # Choose correct base URL based on connection method
             if account.connection_method == 'instagram_platform':
-                media_url = 'https://graph.instagram.com/v21.0/me/media'
+                media_url = 'https://graph.instagram.com/v25.0/me/media'
                 params = {
                     'access_token': account.access_token,
                     'fields': 'id,caption,media_type,thumbnail_url,media_url,timestamp,permalink',
                     'limit': 20,
                 }
             else:
-                media_url = f'https://graph.facebook.com/v21.0/{account.instagram_user_id}/media'
+                media_url = f'https://graph.facebook.com/v25.0/{account.instagram_user_id}/media'
                 params = {
                     'access_token': account.access_token,
                     'fields': 'id,caption,media_type,thumbnail_url,media_url,timestamp,permalink',
@@ -2960,11 +2973,11 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
         # ── Step 1: Fetch profile (followers, username) ───────────────────────
         try:
             if is_platform:
-                profile_url = 'https://graph.instagram.com/v21.0/me'
+                profile_url = 'https://graph.instagram.com/v25.0/me'
                 profile_fields = 'followers_count,username,profile_picture_url,media_count'
             else:
                 ig_id = account.instagram_user_id
-                profile_url = f'https://graph.facebook.com/v21.0/{ig_id}'
+                profile_url = f'https://graph.facebook.com/v25.0/{ig_id}'
                 profile_fields = 'followers_count,username,profile_picture_url'
 
             profile_resp = req.get(
@@ -2994,10 +3007,10 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
             try:
                 counted = 0
                 if is_platform:
-                    next_url: str | None = 'https://graph.instagram.com/v21.0/me/media'
+                    next_url: str | None = 'https://graph.instagram.com/v25.0/me/media'
                 else:
                     ig_id = account.instagram_user_id
-                    next_url = f'https://graph.facebook.com/v21.0/{ig_id}/media'
+                    next_url = f'https://graph.facebook.com/v25.0/{ig_id}/media'
 
                 next_params: dict = {'access_token': token, 'fields': 'id', 'limit': 100}
 
@@ -3164,7 +3177,6 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
             'count': expiring_soon.count()
         })
     
-
 
 
 

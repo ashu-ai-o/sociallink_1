@@ -25,9 +25,9 @@ class InstagramServiceAsync:
         
         # Choose correct base URL based on connection method
         if connection_method == 'instagram_platform':
-            self.base_url = 'https://graph.instagram.com/v21.0'
+            self.base_url = 'https://graph.instagram.com/v25.0'
         else:
-            self.base_url = 'https://graph.facebook.com/v21.0'
+            self.base_url = 'https://graph.facebook.com/v25.0'
         
         self.client = httpx.AsyncClient(
             timeout=30.0,
@@ -53,7 +53,17 @@ class InstagramServiceAsync:
 
         # Instagram requires comment_id as recipient for comment-triggered DMs.
         # Using user id directly causes 400 unless the user messaged first.
-        recipient = {"comment_id": comment_id} if comment_id else {"id": recipient_id}
+        # If we only have comment_id (instagram_user_id starts with 'comment:'),
+        # extract it and use comment_id as the recipient.
+        if comment_id:
+            recipient = {"comment_id": comment_id}
+        elif recipient_id and recipient_id.startswith('comment:'):
+            # Fallback: instagram_user_id holds the comment_id when 'from.id' was absent
+            extracted_comment_id = recipient_id[len('comment:'):]
+            recipient = {"comment_id": extracted_comment_id}
+            logger.info(f"send_dm: using comment_id={extracted_comment_id!r} as recipient (no user_id available)")
+        else:
+            recipient = {"id": recipient_id}
 
         payload = {
             "recipient": recipient,

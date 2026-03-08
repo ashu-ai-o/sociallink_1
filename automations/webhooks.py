@@ -248,7 +248,18 @@ def handle_comment(comment_data, instagram_account):
     user_id = from_user.get('id')
     username = from_user.get('username', '')
     
-    logger.info(f'[COMMENT] New comment from @{username}: "{comment_text}"')
+    logger.info(
+        f'[COMMENT] New comment on media_id={media_id} | '
+        f'comment_id={comment_id} | from @{username}(id={user_id}) | text="{comment_text}"'
+    )
+
+    # Guard: Instagram Platform API sometimes omits 'from.id' — cannot DM without it
+    if not user_id:
+        logger.warning(
+            f'[COMMENT] Skipping comment {comment_id} — no user id in "from" field. '
+            f'This happens with comments from accounts that have restricted messaging. Raw from={from_user}'
+        )
+        return
     
     # Find matching automations
     automations = Automation.objects.filter(
@@ -256,6 +267,14 @@ def handle_comment(comment_data, instagram_account):
         is_active=True,
         trigger_type='comment'
     )
+
+    if not automations.exists():
+        logger.warning(
+            f'[COMMENT] No active comment automations found for @{instagram_account.username}'
+        )
+        return
+
+    logger.info(f'[COMMENT] Checking {automations.count()} automation(s) for @{instagram_account.username}')
     
     for automation in automations:
         # Check if comment matches triggers
@@ -271,7 +290,7 @@ def handle_comment(comment_data, instagram_account):
                 status='pending'
             )
             
-            logger.info(f'[TRIGGER] Created trigger {trigger.id} for automation {automation.name}')
+            logger.info(f'[TRIGGER] ✓ Created trigger {trigger.id} for automation "{automation.name}"')
             
             # Dispatch to Celery (wrapped — webhook must return 200 even if broker is down)
             try:
@@ -306,24 +325,47 @@ def should_trigger_automation(automation, comment_text, post_id):
     """
     # Check target posts
     if automation.target_posts and post_id not in automation.target_posts:
+        logger.warning(
+            f'[FILTER] Automation "{automation.name}" SKIPPED — '
+            f'post_id={post_id!r} not in target_posts={automation.target_posts}. '
+            f'Either add this post to target_posts in the automation, or clear target_posts to match ALL posts.'
+        )
         return False
     
     # Check keywords
     comment_lower = comment_text.lower()
     
     if automation.trigger_match_type == 'any':
+        logger.info(f'[FILTER] Automation "{automation.name}" MATCHED (match_type=any)')
         return True
     elif automation.trigger_match_type == 'exact':
-        return any(
+        matched = any(
             keyword.lower() == comment_lower
             for keyword in automation.trigger_keywords
         )
+        if matched:
+            logger.info(f'[FILTER] Automation "{automation.name}" MATCHED (exact) on "{comment_text}"')
+        else:
+            logger.warning(
+                f'[FILTER] Automation "{automation.name}" SKIPPED — '
+                f'no exact match for "{comment_text}" in keywords={automation.trigger_keywords}'
+            )
+        return matched
     elif automation.trigger_match_type == 'contains':
-        return any(
+        matched = any(
             keyword.lower() in comment_lower
             for keyword in automation.trigger_keywords
         )
+        if matched:
+            logger.info(f'[FILTER] Automation "{automation.name}" MATCHED (contains) on "{comment_text}"')
+        else:
+            logger.warning(
+                f'[FILTER] Automation "{automation.name}" SKIPPED — '
+                f'"{comment_text}" does not contain any of keywords={automation.trigger_keywords}'
+            )
+        return matched
     
+    logger.warning(f'[FILTER] Automation "{automation.name}" SKIPPED — unknown match_type={automation.trigger_match_type!r}')
     return False
 
 
@@ -352,8 +394,10 @@ def process_message(message, instagram_account):
     sender_id = sender.get('id')
     text = msg_data.get('text', '')
 
-    # Ignore echo messages — these are messages the account sent (echoed back by Instagram)
-    if sender_id == instagram_account.instagram_user_id:
+    # Ignore echo messages — these are messages the account itself sent (echoed back by Instagram).
+    # For instagram_platform accounts, the own account id is stored in platform_id (same as instagram_user_id).
+    own_id = instagram_account.platform_id or instagram_account.instagram_user_id
+    if sender_id == own_id:
         logger.debug(f'[DM] Ignoring echo message from own account {sender_id}')
         return
 

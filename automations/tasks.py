@@ -143,6 +143,72 @@ class QueueManager:
 # ============================================================================
 
 @shared_task
+def refresh_instagram_tokens():
+    """
+    Automatically refresh Instagram Platform API tokens that are expiring soon.
+    
+    Tokens last ~60 days. This task runs daily and refreshes any token that
+    expires in less than 15 days, keeping automations running continuously.
+    
+    Only refreshes 'instagram_platform' tokens (graph.instagram.com).
+    Facebook Graph API tokens are tied to Facebook Pages and don't use this flow.
+    """
+    import requests
+    from accounts.models import InstagramAccount
+    from django.utils import timezone
+    from datetime import timedelta
+
+    threshold = timezone.now() + timedelta(days=15)
+
+    # Find platform tokens expiring within 15 days
+    expiring = InstagramAccount.objects.filter(
+        connection_method='instagram_platform',
+        is_active=True,
+        token_expires_at__lte=threshold,
+    )
+
+    count = expiring.count()
+    if count == 0:
+        logger.info('[token_refresh] All Instagram tokens are healthy (>15 days remaining)')
+        return
+
+    logger.info(f'[token_refresh] Found {count} token(s) expiring within 15 days — refreshing...')
+
+    for account in expiring:
+        try:
+            resp = requests.get(
+                'https://graph.instagram.com/refresh_access_token',
+                params={
+                    'grant_type': 'ig_refresh_token',
+                    'access_token': account.access_token,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+            new_token = data.get('access_token')
+            expires_in = data.get('expires_in', 5184000)  # default ~60 days
+
+            if new_token:
+                account.access_token = new_token
+                account.token_expires_at = timezone.now() + timedelta(seconds=expires_in)
+                account.save(update_fields=['access_token', 'token_expires_at'])
+                logger.info(
+                    f'[token_refresh] ✓ Refreshed token for @{account.username} — '
+                    f'valid until {account.token_expires_at.strftime("%Y-%m-%d")}'
+                )
+            else:
+                logger.error(
+                    f'[token_refresh] ✗ No new token in response for @{account.username}: {data}'
+                )
+        except Exception as e:
+            logger.error(
+                f'[token_refresh] ✗ Failed to refresh token for @{account.username}: {e}'
+            )
+
+
+@shared_task
 def retry_pending_triggers():
     """
     Periodic safety net: dispatch any triggers stuck in 'pending' status.
@@ -379,8 +445,11 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
         
         logger.error(f'✗ Failed to send DM for trigger #{trigger.id}: {trigger.error_message}')
         
-        # Retry with exponential backoff
-        raise celery_task.retry(countdown=2 ** celery_task.request.retries)
+        # Retry with exponential backoff — max 3 retries to avoid infinite retry storms
+        if celery_task.request.retries < 3:
+            raise celery_task.retry(countdown=2 ** celery_task.request.retries)
+        else:
+            logger.error(f'✗ Trigger #{trigger.id} exceeded max retries (3). Giving up.')
 
 
 # ============================================================================
@@ -541,39 +610,67 @@ async def process_automation_comments(automation):
     for post_id in posts_to_check:
         comments = await instagram_service.get_comments(post_id)
         
+        logger.info(
+            f'[POLL] post={post_id} | automation="{automation.name}" | '
+            f'found {len(comments)} comments from API'
+        )
+
         for comment in comments:
+            comment_id = comment.get('id')
+            if not comment_id:
+                continue
+
             # Check if already processed
-            cache_key = f"comment_processed_{comment['id']}"
+            cache_key = f"comment_processed_{comment_id}"
             if await cache.aget(cache_key):
                 continue
             
             # Check trigger conditions
-            should_trigger = check_trigger_conditions(
-                automation,
-                comment.get('text', '')
+            comment_text = comment.get('text', '')
+            should_trigger = check_trigger_conditions(automation, comment_text)
+            
+            if not should_trigger:
+                logger.info(
+                    f'[POLL] comment "{comment_text}" did not match '
+                    f'automation "{automation.name}" (keywords={automation.trigger_keywords}, '
+                    f'match_type={automation.trigger_match_type}) — skipping'
+                )
+                # Still mark as checked so we don't re-evaluate every 30s
+                await cache.aset(cache_key, 'skipped', 86400)
+                continue
+
+            # Get user info from comment — Instagram Platform API sometimes omits 'from'
+            from_data = comment.get('from', {})
+            user_id = from_data.get('id') or ''  # May be empty for MEDIA_CREATOR accounts
+            username = from_data.get('username') or comment.get('username') or ''
+
+            logger.info(
+                f'[POLL] ✓ MATCH: comment_id={comment_id} | '
+                f'@{username}(id={user_id!r}) | text="{comment_text}"'
+            )
+
+            # Create trigger record
+            # When user_id is missing, store the comment_id in instagram_user_id field
+            # so the DM task can use comment_id as recipient (Instagram allows this)
+            trigger = await AutomationTrigger.objects.acreate(
+                automation=automation,
+                instagram_user_id=user_id or f'comment:{comment_id}',
+                instagram_username=username,
+                post_id=post_id,
+                comment_id=comment_id,
+                comment_text=comment_text,
+                status='pending'
             )
             
-            if should_trigger:
-                # Create trigger record
-                trigger = await AutomationTrigger.objects.acreate(
-                    automation=automation,
-                    instagram_user_id=comment['from']['id'],
-                    instagram_username=comment['from'].get('username', ''),
-                    post_id=post_id,
-                    comment_id=comment['id'],
-                    comment_text=comment['text'],
-                    status='pending'
-                )
-                
-                # Mark as processed
-                await cache.aset(cache_key, True, 86400)
-                
-                # Queue for processing
-                process_automation_trigger_async.delay(str(trigger.id))
-                
-                # Update stats
-                automation.total_triggers += 1
-                await automation.asave()
+            # Mark as processed
+            await cache.aset(cache_key, True, 86400)
+            
+            # Queue for processing
+            process_automation_trigger_async.delay(str(trigger.id))
+            
+            # Update stats
+            automation.total_triggers += 1
+            await automation.asave()
 
 
 def check_trigger_conditions(automation, comment_text: str) -> bool:
