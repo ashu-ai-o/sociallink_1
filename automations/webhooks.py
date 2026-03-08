@@ -20,15 +20,36 @@ logger = logging.getLogger(__name__)
 @require_http_methods(["GET", "POST"])
 def instagram_webhook(request):
     """
-    Main webhook endpoint for Instagram events
-    
-    Handles:
-    - GET: Webhook verification
-    - POST: Incoming webhook events
-    
-    Endpoint: /api/webhooks/instagram/
+    Webhook endpoint for the Facebook App (app ID 1673642834080199).
+
+    Register this URL in the Facebook App → Webhooks dashboard:
+      <BACKEND_URL>/api/webhooks/instagram/
+
+    Handles both GET (hub challenge verification) and POST (events).
     """
-    
+    if request.method == "GET":
+        return verify_webhook(request)
+    elif request.method == "POST":
+        return handle_webhook(request)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def instagram_platform_webhook(request):
+    """
+    Webhook endpoint for the Instagram Platform App (app ID 1630904951551567).
+
+    This is the URL that MUST be configured in the Instagram Platform App's
+    Webhooks dashboard so that Meta routes comment / message events for
+    accounts that connected via Instagram Direct Login (instagram_platform).
+
+    Register this URL in the Instagram Platform App → Webhooks dashboard:
+      <BACKEND_URL>/api/webhooks/instagram-platform/
+
+    Uses the same verify token (INSTAGRAM_WEBHOOK_VERIFY_TOKEN) and the
+    same handler as the Facebook App webhook.  Signature verification uses
+    INSTAGRAM_CLIENT_SECRET for payloads signed by the Platform App.
+    """
     if request.method == "GET":
         return verify_webhook(request)
     elif request.method == "POST":
@@ -375,8 +396,11 @@ def process_message(message, instagram_account):
     sender_id = sender.get('id')
     text = msg_data.get('text', '')
 
-    # Ignore echo messages — these are messages the account sent (echoed back by Instagram)
-    if sender_id == instagram_account.instagram_user_id:
+    # Ignore echo messages — messages the account itself sent, echoed back by Instagram.
+    # For instagram_platform accounts platform_id == instagram_user_id (both stored as the
+    # same numeric string), so a single comparison covers both connection methods.
+    own_ids = {instagram_account.instagram_user_id, instagram_account.platform_id}
+    if sender_id in own_ids:
         logger.debug(f'[DM] Ignoring echo message from own account {sender_id}')
         return
 

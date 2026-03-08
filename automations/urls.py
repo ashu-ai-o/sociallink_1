@@ -12,7 +12,7 @@ from .views import (
     AIProviderViewSet,
     AnalyticsViewSet
 )
-from .webhooks import instagram_webhook
+from .webhooks import instagram_webhook, instagram_platform_webhook
 from accounts.views import InstagramAccountViewSet
 
 # Create router and register viewsets
@@ -26,5 +26,9 @@ router.register(r'instagram-accounts', InstagramAccountViewSet, basename='instag
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Facebook App (1673642834080199) webhook — configure this URL in the Facebook App dashboard
     path('webhooks/instagram/', instagram_webhook, name='instagram_webhook'),
+    # Instagram Platform App (1630904951551567) webhook — configure THIS URL in the Instagram Platform App dashboard
+    # Both point to the same handler; the handler verifies signatures with both app secrets.
+    path('webhooks/instagram-platform/', instagram_platform_webhook, name='instagram_platform_webhook'),
 ]

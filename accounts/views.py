@@ -2800,12 +2800,25 @@ def instagram_platform_oauth_callback(request):
                 'access_token': long_lived_token,
             }
         )
+        platform_webhook_url = f"{settings.BACKEND_URL.rstrip('/')}/api/webhooks/instagram-platform/"
         if sub_response.ok:
-            logger.info(f"[WEBHOOK] Subscribed Instagram account {platform_user_id} to webhook events (comments + messages)")
+            # The account is now subscribed to the Instagram Platform App's webhook.
+            # Meta will POST events to the callback URL configured for that app.
+            # If comment webhooks are silently dropped, verify that the Instagram Platform
+            # App (INSTAGRAM_CLIENT_ID) has its webhook callback URL set to:
+            #   {platform_webhook_url}
+            # with verify token = INSTAGRAM_WEBHOOK_VERIFY_TOKEN.
+            logger.info(
+                "[WEBHOOK] Subscribed IG account %s to comments+messages via Platform App %s. "
+                "Platform App webhook URL must be: %s",
+                platform_user_id, settings.INSTAGRAM_CLIENT_ID, platform_webhook_url
+            )
         else:
             logger.warning(
-                f"[WEBHOOK] Failed to subscribe account {platform_user_id} to webhook events: "
-                f"{sub_response.status_code} {sub_response.text}"
+                "[WEBHOOK] Failed to subscribe account %s to webhook events: %s %s. "
+                "Platform App (%s) webhook URL should be: %s",
+                platform_user_id, sub_response.status_code, sub_response.text,
+                settings.INSTAGRAM_CLIENT_ID, platform_webhook_url
             )
 
         return _popup_response(True)
