@@ -289,22 +289,24 @@ class SessionTracker:
         security_flags = SessionTracker.detect_vpn_tor(ip_address)
         utm_params = SessionTracker.extract_utm_params(request)
 
-        # Check if we have an active session for this user/IP combination
+        # ── Device fingerprint = IP + user-agent hash ───────────────────────────
+        # This is how all big SaaS apps work: one active session per device.
+        # We match on (user, ip_address, user_agent_hash, is_active) and simply
+        # UPDATE last_activity on every visit instead of creating a new row.
+        ua_hash = SessionTracker.hash_user_agent(user_agent_string)
+
         session = None
         if user:
-            # Look for recent session (within last 30 minutes) from same IP
-            recent_threshold = timezone.now() - timedelta(minutes=30)
             session = UserSession.objects.filter(
                 user=user,
                 ip_address=ip_address,
+                user_agent_hash=ua_hash,
                 is_active=True,
-                last_activity__gte=recent_threshold
             ).first()
 
-        # Create new session if none found
+        # Create new session only if no matching device session exists
         if not session:
             session_token = SessionTracker.generate_session_token()
-            ua_hash = SessionTracker.hash_user_agent(user_agent_string)
 
             session = UserSession.objects.create(
                 user=user,
@@ -374,16 +376,16 @@ class SessionTracker:
                 is_active=True,
             )
 
-            print(f"✅ Created new session {session.id} for {user.username if user else 'Anonymous'} from {ip_address}")
+            print(f"✅ New session for {user.username if user else 'Anonymous'} from {ip_address} [{ua_data['browser_name']} / {ua_data['os_name']}]")
         else:
-            # Update existing session
+            # Same device visited again — just refresh the timestamp
             session.page_views += 1
-            session.last_activity = timezone.now()
-            session.save()
+            session.save(update_fields=['page_views', 'last_activity'])
 
-            print(f"🔄 Updated session {session.id} for {user.username}")
+            print(f"🔄 Session refreshed: {user.username} [{ua_data['browser_name']} / {ua_data['os_name']}]")
 
         return session
+
 
     @staticmethod
     def _extract_domain(url: str) -> str:

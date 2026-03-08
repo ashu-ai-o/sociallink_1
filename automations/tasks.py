@@ -213,12 +213,11 @@ def retry_pending_triggers():
     """
     Periodic safety net: dispatch any triggers stuck in 'pending' status.
     Runs every 30 seconds via Celery Beat.
-    Catches cases where .delay() failed during webhook handling (e.g. momentary broker issue).
     """
     from .models import AutomationTrigger
     from django.utils import timezone
 
-    # Only retry triggers that are < 24 hours old and still pending
+    # Only retry triggers < 24 hours old
     cutoff = timezone.now() - timezone.timedelta(hours=24)
     pending = AutomationTrigger.objects.filter(
         status='pending',
@@ -226,10 +225,20 @@ def retry_pending_triggers():
     ).order_by('created_at')
 
     count = pending.count()
+
+    # Always log a heartbeat so Celery shows it's alive
+    total_sent = AutomationTrigger.objects.filter(status='sent').count()
+    total_failed = AutomationTrigger.objects.filter(status='failed').count()
+    total_processing = AutomationTrigger.objects.filter(status='processing').count()
+    logger.info(
+        f'[BEAT] Celery alive | pending={count} processing={total_processing} '
+        f'sent={total_sent} failed={total_failed}'
+    )
+
     if count == 0:
         return
 
-    logger.info(f'[retry_pending_triggers] Found {count} pending triggers \u2014 dispatching...')
+    logger.info(f'[retry_pending_triggers] Found {count} pending triggers — dispatching...')
     dispatched = 0
     for trigger in pending:
         try:
@@ -332,24 +341,31 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     
     if automation.enable_comment_reply and automation.comment_reply_message:
         if trigger.comment_id:
-            # Replace variables in reply message
-            reply_message = automation.comment_reply_message.replace(
-                '{username}', trigger.instagram_username
-            )
-            
-            # Reply to comment
-            reply_result = await instagram_service.reply_to_comment(
-                comment_id=trigger.comment_id,
-                reply_message=reply_message
-            )
-            
-            if reply_result['success']:
-                comment_reply_success = True
-                trigger.comment_reply_sent = True
-                trigger.comment_reply_text = reply_message
-                logger.info(f"✓ Replied to comment from @{trigger.instagram_username}")
+            # Skip reply for simulated / test comment IDs (local dev testing)
+            is_simulated = str(trigger.comment_id).startswith('SIMULATED_')
+            if is_simulated:
+                logger.info(
+                    f'[DEV] Skipping comment reply for simulated comment_id={trigger.comment_id}'
+                )
             else:
-                logger.warning(f"Failed to reply to comment: {reply_result.get('error')}")
+                # Replace variables in reply message
+                reply_message = automation.comment_reply_message.replace(
+                    '{username}', trigger.instagram_username
+                )
+                
+                # Reply to comment
+                reply_result = await instagram_service.reply_to_comment(
+                    comment_id=trigger.comment_id,
+                    reply_message=reply_message
+                )
+                
+                if reply_result['success']:
+                    comment_reply_success = True
+                    trigger.comment_reply_sent = True
+                    trigger.comment_reply_text = reply_message
+                    logger.info(f"✓ Replied to comment from @{trigger.instagram_username}")
+                else:
+                    logger.warning(f"Failed to reply to comment: {reply_result.get('error')}")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 5: Prepare DM message (with AI enhancement)
@@ -599,17 +615,33 @@ async def process_automation_comments(automation):
     """Process comments for a single automation"""
     from .models import AutomationTrigger
     from automations.services.instagram_service_async import InstagramServiceAsync
-    
+
+    account = automation.instagram_account
     instagram_service = InstagramServiceAsync(
-        automation.instagram_account.access_token,
-        connection_method=automation.instagram_account.connection_method
+        account.access_token,
+        connection_method=account.connection_method
     )
-    
+
     posts_to_check = automation.target_posts if automation.target_posts else []
-    
+
+    logger.info(
+        f'[POLL] automation="{automation.name}" | '
+        f'account=@{account.username} | '
+        f'connection_method={account.connection_method} | '
+        f'token_snippet={account.access_token[:15]}... | '
+        f'target_posts={posts_to_check}'
+    )
+
+    if not posts_to_check:
+        logger.warning(
+            f'[POLL] automation="{automation.name}" has no target_posts — nothing to poll. '
+            f'Add a post ID in the automation settings.'
+        )
+        return
+
     for post_id in posts_to_check:
         comments = await instagram_service.get_comments(post_id)
-        
+
         logger.info(
             f'[POLL] post={post_id} | automation="{automation.name}" | '
             f'found {len(comments)} comments from API'

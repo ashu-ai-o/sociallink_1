@@ -1761,12 +1761,29 @@ class ActiveSessionsView(APIView):
     
     def get(self, request):
         user = request.user
-        
-        # Get all active sessions for this user
+        from datetime import timedelta
+        from django.utils import timezone as tz
+
+        SESSION_TIMEOUT_HOURS = 24  # Sessions expire after 24h of inactivity
+
+        # Auto-expire sessions that have been inactive for more than 24 hours
+        cutoff = tz.now() - timedelta(hours=SESSION_TIMEOUT_HOURS)
+        expired = UserSession.objects.filter(
+            user=user,
+            is_active=True,
+            last_activity__lt=cutoff
+        )
+        expired_count = expired.count()
+        if expired_count:
+            expired.update(is_active=False, session_ended_at=tz.now())
+
+        # Now get only genuinely active sessions (active in last 24h)
         active_sessions = UserSession.objects.filter(
             user=user,
-            is_active=True
+            is_active=True,
+            last_activity__gte=cutoff
         ).order_by('-last_activity')
+
         
         # Get current session (from IP + user agent)
         current_ip, _ = self._get_client_ip(request)
@@ -2600,7 +2617,7 @@ def save_instagram_account(user, access_token, expires_in, instagram_data, conne
     Args:
         access_token: The access token depending on the connection_method
     """
-    expires_at = datetime.now() + timedelta(seconds=expires_in)
+    expires_at = timezone.now() + timedelta(seconds=expires_in)
 
     # Base payload
     defaults={

@@ -228,16 +228,21 @@ CELERY_TASK_TIME_LIMIT = 300  # 5 minutes max per task
 
 # Celery Beat Schedule (automated tasks)
 CELERY_BEAT_SCHEDULE = {
-    # Retry any 'pending' triggers every 30s — ensures automations run even if .delay() failed at webhook time
+    # Retry any 'pending' triggers every 30s — safety net if .delay() failed at webhook time
     'retry-pending-triggers': {
         'task': 'automations.tasks.retry_pending_triggers',
         'schedule': 30.0,
     },
-    # Also run the original comment bulk check (polls for comments directly)
-    'check-comments-every-30s': {
-        'task': 'automations.tasks.check_comments_bulk_async',
-        'schedule': 30.0,
-    },
+
+    # COMMENT POLLING DISABLED — we use webhooks instead.
+    # Polling via Instagram Platform API always returns 0 comments in Dev mode
+    # and is redundant when webhooks are configured. Enable only as a fallback
+    # if webhooks stop working (e.g. ngrok is down).
+    # 'check-comments-fallback': {
+    #     'task': 'automations.tasks.check_comments_bulk_async',
+    #     'schedule': 300.0,  # every 5 minutes — only if webhooks are unavailable
+    # },
+
     # Refresh Instagram Platform API tokens daily — tokens last 60 days, refresh when < 15 days left
     'refresh-instagram-tokens-daily': {
         'task': 'automations.tasks.refresh_instagram_tokens',

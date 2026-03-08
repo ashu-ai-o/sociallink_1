@@ -237,21 +237,35 @@ def process_change(change, instagram_account):
 
 def handle_comment(comment_data, instagram_account):
     """
-    Handle new comment on post
-    
-    This is where automation magic happens!
+    Handle new comment on post.
+
+    Meta sends two different comment payload structures:
+      1. Real webhooks / Test button:
+            { "media": {"id": "123", "media_product_type": "FEED"},
+              "id": "comment_id", "text": "...", "from": {...} }
+      2. Older / alternative format:
+            { "media_id": "123", "id": "comment_id", "text": "...", "from": {...} }
+
+    We support both.
     """
-    media_id = comment_data.get('media_id')
+    # Support both payload shapes
+    media_obj = comment_data.get('media') or {}
+    media_id = (
+        comment_data.get('media_id')          # flat format
+        or media_obj.get('id')                # nested format (real Meta webhooks)
+    )
+
     comment_id = comment_data.get('id')
     comment_text = comment_data.get('text', '')
     from_user = comment_data.get('from', {})
     user_id = from_user.get('id')
     username = from_user.get('username', '')
-    
+
     logger.info(
         f'[COMMENT] New comment on media_id={media_id} | '
         f'comment_id={comment_id} | from @{username}(id={user_id}) | text="{comment_text}"'
     )
+
 
     # Guard: Instagram Platform API sometimes omits 'from.id' — cannot DM without it
     if not user_id:

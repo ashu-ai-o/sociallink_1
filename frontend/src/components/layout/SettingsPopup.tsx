@@ -417,12 +417,12 @@ const InstagramTab: React.FC<any> = ({ accounts, loading, onConnect, onDisconnec
     {/* Connection Options */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       {/* Option 1: Direct Instagram Login */}
-      <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-5 flex flex-col items-start gap-3">
-        <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+      <div className={`border rounded-xl p-5 flex flex-col items-start gap-3 transition-colors ${accounts.length > 0 ? 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 opacity-60' : 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'}`}>
+        <div className={`flex items-center gap-2 ${accounts.length > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-purple-700 dark:text-purple-300'}`}>
           <Instagram className="w-5 h-5 flex-shrink-0" />
           <h4 className="font-bold">Connect via Instagram</h4>
         </div>
-        <div className="text-sm text-purple-900/80 dark:text-purple-200/80 flex-1">
+        <div className={`text-sm flex-1 ${accounts.length > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-purple-900/80 dark:text-purple-200/80'}`}>
           <p className="mb-2"><strong>Recommended.</strong> Fastest way to automate DMs.</p>
           <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
             <li>No Facebook Page required</li>
@@ -431,22 +431,35 @@ const InstagramTab: React.FC<any> = ({ accounts, loading, onConnect, onDisconnec
         </div>
         <button
           onClick={() => onConnect('instagram_platform')}
-          className="w-full py-2.5 mt-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          disabled={accounts.length > 0}
+          className={`w-full py-2.5 mt-2 flex items-center justify-center gap-2 rounded-lg font-medium transition-all ${accounts.length > 0
+            ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90'
+            }`}
         >
-          <Instagram className="w-4 h-4" />
-          Connect Instagram
+          {accounts.length > 0 ? (
+            <>
+              <Check className="w-4 h-4" />
+              Already Connected
+            </>
+          ) : (
+            <>
+              <Instagram className="w-4 h-4" />
+              Connect Instagram
+            </>
+          )}
         </button>
       </div>
 
       {/* Option 2: Facebook Graph API */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-5 flex flex-col items-start gap-3">
-        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+      <div className={`border rounded-xl p-5 flex flex-col items-start gap-3 transition-colors ${accounts.length > 0 ? 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 opacity-60' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'}`}>
+        <div className={`flex items-center gap-2 ${accounts.length > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-blue-700 dark:text-blue-300'}`}>
           <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
           </svg>
           <h4 className="font-bold">Connect via Facebook</h4>
         </div>
-        <div className="text-sm text-blue-900/80 dark:text-blue-200/80 flex-1">
+        <div className={`text-sm flex-1 ${accounts.length > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-blue-900/80 dark:text-blue-200/80'}`}>
           <p className="mb-2"><strong>Legacy Method.</strong> Useful if you manage multiple tools.</p>
           <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
             <li>Requires a linked Facebook Page</li>
@@ -455,12 +468,25 @@ const InstagramTab: React.FC<any> = ({ accounts, loading, onConnect, onDisconnec
         </div>
         <button
           onClick={() => onConnect('facebook_graph')}
-          className="w-full py-2.5 mt-2 bg-[#1877F2] text-white rounded-lg font-medium hover:bg-[#166FE5] transition-colors flex items-center justify-center gap-2"
+          disabled={accounts.length > 0}
+          className={`w-full py-2.5 mt-2 flex items-center justify-center gap-2 rounded-lg font-medium transition-all ${accounts.length > 0
+            ? 'bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+            : 'bg-[#1877F2] text-white hover:bg-[#166FE5]'
+            }`}
         >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
-          </svg>
-          Connect Facebook
+          {accounts.length > 0 ? (
+            <>
+              <Check className="w-4 h-4" />
+              Already Connected
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+              </svg>
+              Connect Facebook
+            </>
+          )}
         </button>
       </div>
     </div>

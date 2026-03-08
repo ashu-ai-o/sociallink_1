@@ -84,13 +84,21 @@ class InstagramServiceAsync:
         
         try:
             response = await self.client.post(url, json=payload, params=params)
-            response.raise_for_status()
+            if not response.is_success:
+                try:
+                    err_json = response.json()
+                    err = err_json.get('error', {})
+                    logger.error(
+                        f"[send_dm] Failed HTTP {response.status_code}: "
+                        f"code={err.get('code')} subcode={err.get('error_subcode')} "
+                        f"type={err.get('type')} message={err.get('message')!r}"
+                    )
+                except Exception:
+                    logger.error(f"[send_dm] Failed HTTP {response.status_code}: {response.text[:500]}")
+                return {"success": False, "error": f"HTTP {response.status_code}", "details": response.text}
             return {"success": True, "data": response.json()}
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Failed to send DM: {e.response.status_code} - {e.response.text}")
-            return {"success": False, "error": str(e), "details": e.response.text}
         except Exception as e:
-            logger.error(f"DM send error: {str(e)}")
+            logger.error(f"[send_dm] DM send exception: {str(e)}")
             return {"success": False, "error": str(e)}
     
     # ═══════════════════════════════════════════════════════════════
@@ -165,21 +173,67 @@ class InstagramServiceAsync:
             return False
     
     async def get_comments(self, post_id: str) -> List[Dict]:
-        """Get comments on a post"""
+        """
+        Get comments on a post (all pages).
+        
+        Uses the correct API endpoint based on connection_method:
+        - instagram_platform → graph.instagram.com/{post_id}/comments
+        - facebook_graph     → graph.facebook.com/{post_id}/comments
+        """
         url = f"{self.base_url}/{post_id}/comments"
         params = {
             "fields": "id,text,username,from,timestamp",
             "access_token": self.access_token,
             "limit": 100
         }
-        
+
+        all_comments = []
+
         try:
-            response = await self.client.get(url, params=params)
-            response.raise_for_status()
-            return response.json().get('data', [])
+            while url:
+                response = await self.client.get(url, params=params)
+
+                if not response.is_success:
+                    logger.error(
+                        f"[get_comments] API error for post {post_id}: "
+                        f"HTTP {response.status_code} — {response.text}"
+                    )
+                    return all_comments
+
+                data = response.json()
+
+                if 'error' in data:
+                    err = data['error']
+                    logger.error(
+                        f"[get_comments] Instagram API error for post {post_id}: "
+                        f"code={err.get('code')} subcode={err.get('error_subcode')} "
+                        f"message={err.get('message')} type={err.get('type')}"
+                    )
+                    return all_comments
+
+                page_comments = data.get('data', [])
+                all_comments.extend(page_comments)
+
+                logger.info(
+                    f"[get_comments] post={post_id} fetched {len(page_comments)} comments "
+                    f"(total so far: {len(all_comments)})"
+                )
+
+                # Follow pagination cursor if there are more pages
+                paging = data.get('paging', {})
+                next_url = paging.get('next')
+                if next_url:
+                    # next_url contains the full URL with all params already embedded
+                    url = next_url
+                    params = {}  # params already in the next URL
+                else:
+                    break
+
         except Exception as e:
-            logger.error(f"Comments fetch error: {str(e)}")
-            return []
+            logger.error(f"[get_comments] Exception fetching comments for post {post_id}: {str(e)}")
+
+        return all_comments
+
     
     async def close(self):
         """Close HTTP client"""

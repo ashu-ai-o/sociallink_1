@@ -34,9 +34,10 @@ app.conf.beat_schedule = {
         'schedule': crontab(minute=0),  # Every hour at :00
     },
     
-    # Optional: Check comments every 5 minutes (if not using webhooks)
-    'check-comments': {
-        'task': 'automations.tasks.check_comments_bulk_async',
-        'schedule': crontab(minute='*/5'),
-    },
+    # Optional: Comment polling fallback — only enable if webhooks are unavailable
+    # Since webhooks are configured, this is kept disabled to avoid log spam.
+    # 'check-comments-fallback': {
+    #     'task': 'automations.tasks.check_comments_bulk_async',
+    #     'schedule': crontab(minute='*/5'),
+    # },
 }
