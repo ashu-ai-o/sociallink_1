@@ -281,13 +281,26 @@ def handle_comment(comment_data, instagram_account):
         )
     # ─────────────────────────────────────────────────────────────────────────
 
-    # Guard: Instagram Platform API sometimes omits 'from.id' — cannot DM without it
+    # Guard: Instagram Platform API sometimes omits 'from.id' for commenters who haven't
+    # authorized the app.  We can still attempt to send the DM using comment_id as the
+    # recipient (Instagram supports {"comment_id": comment_id} to open a thread even without
+    # knowing the IGSID).  Fall back to that approach rather than silently dropping the event.
     if not user_id:
-        logger.warning(
-            f'[COMMENT] Skipping comment {comment_id} — no user id in "from" field. '
-            f'This happens with comments from accounts that have restricted messaging. Raw from={from_user}'
-        )
-        return
+        if comment_id:
+            logger.warning(
+                f'[COMMENT] comment_id={comment_id} has no user id in "from" field '
+                f'(raw from={from_user}). '
+                f'Will attempt DM via comment_id recipient instead of user_id. '
+                f'This is normal in development mode for users who have not authorised the app.'
+            )
+            # Store comment_id as a sentinel so send_dm knows to use it as recipient
+            user_id = f'comment:{comment_id}'
+        else:
+            logger.warning(
+                f'[COMMENT] Skipping comment — no user id in "from" field AND no comment_id. '
+                f'Raw from={from_user}'
+            )
+            return
     
     # Find matching automations
     automations = Automation.objects.filter(
