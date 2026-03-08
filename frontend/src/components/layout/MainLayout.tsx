@@ -20,6 +20,7 @@ import {
 import { useAppDispatch, useAppSelector, useTheme } from '../../hooks/';
 import { logout } from '../../store/slices/authSlice';
 import { SettingsPopup } from './SettingsPopup';
+import { Footer } from './Footer';
 import toast from 'react-hot-toast';
 
 interface MainLayoutProps {
@@ -68,7 +69,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+    <div className="min-h-screen flex flex-col bg-neutral-50 dark:bg-neutral-950">
       {/* Top Navigation Bar */}
       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -88,7 +89,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path ||
-                                 location.pathname.startsWith(item.path + '/');
+                  location.pathname.startsWith(item.path + '/');
 
                 return (
                   <Link
@@ -97,10 +98,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                     className={`
                       flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                       transition-all duration-200
-                      ${
-                        isActive
-                          ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
-                          : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
+                      ${isActive
+                        ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
+                        : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
                       }
                     `}
                   >
@@ -200,7 +200,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path ||
-                                 location.pathname.startsWith(item.path + '/');
+                  location.pathname.startsWith(item.path + '/');
 
                 return (
                   <Link
@@ -210,10 +210,9 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                       transition-colors
-                      ${
-                        isActive
-                          ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
-                          : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
+                      ${isActive
+                        ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white'
+                        : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
                       }
                     `}
                   >
@@ -260,10 +259,11 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
 
+      <Footer />
       <SettingsPopup />
     </div>
   );

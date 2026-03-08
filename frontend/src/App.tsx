@@ -26,6 +26,9 @@ import { FeedbackPage } from './pages/FeedbackPage';
 import { PricingPage } from './pages/Static/PricingPage';
 import { AboutPage } from './pages/Static/AboutPage';
 import { ContactUsPage } from './pages/Static/ContactUsPage';
+import { PrivacyPolicyPage } from './pages/Static/PrivacyPolicyPage';
+import { TermsOfServicePage } from './pages/Static/TermsOfServicePage';
+import { Footer } from './components/layout/Footer';
 
 // ============================================================
 // Auth validation — verifies token on app startup
@@ -115,6 +118,18 @@ const RootRedirect = () => {
   return <Navigate to="/dashboard" replace />;
 };
 
+// Layout for public static pages
+const PublicLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex flex-col min-h-screen">
+      <div className="flex-grow">
+        {children}
+      </div>
+      <Footer />
+    </div>
+  );
+};
+
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
@@ -160,9 +175,11 @@ function App() {
                 {/* Public Routes — accessible without login */}
                 <Route path="/auth" element={<AuthLayout><AuthPage /></AuthLayout>} />
                 <Route path="/auth/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
-                <Route path="/pricing" element={<PricingPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="/contact" element={<ContactUsPage />} />
+                <Route path="/pricing" element={<PublicLayout><PricingPage /></PublicLayout>} />
+                <Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} />
+                <Route path="/contact" element={<PublicLayout><ContactUsPage /></PublicLayout>} />
+                <Route path="/privacy-policy" element={<PublicLayout><PrivacyPolicyPage /></PublicLayout>} />
+                <Route path="/terms-of-service" element={<PublicLayout><TermsOfServicePage /></PublicLayout>} />
 
                 {/* Onboarding Route */}
                 <Route path="/onboarding" element={

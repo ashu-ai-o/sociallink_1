@@ -14,6 +14,7 @@ class ApiClient {
       baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': '69420',
       },
     });
 

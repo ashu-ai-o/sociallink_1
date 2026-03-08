@@ -60,19 +60,6 @@ export const PricingPage = () => {
 
   return (
     <div className="min-h-screen bg-[neutral-50 dark:bg-neutral-800]">
-      {/* Header */}
-      <div className="border-b border-[neutral-200 dark:border-neutral-800] bg-[white dark:bg-neutral-900]">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-2 text-[neutral-600 dark:text-neutral-400] hover:text-[neutral-900 dark:text-white]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Hero */}
         <div className="text-center mb-16">
@@ -87,21 +74,19 @@ export const PricingPage = () => {
           <div className="inline-flex items-center gap-4 p-2 bg-[white dark:bg-neutral-900] rounded-lg border border-[neutral-200 dark:border-neutral-800]">
             <button
               onClick={() => setBilling('monthly')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                billing === 'monthly'
+              className={`px-6 py-2 rounded-lg font-medium transition-all ${billing === 'monthly'
                   ? 'bg-[neutral-900 dark:text-white] text-white'
                   : 'text-[neutral-600 dark:text-neutral-400]'
-              }`}
+                }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBilling('annual')}
-              className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                billing === 'annual'
+              className={`px-6 py-2 rounded-lg font-medium transition-all ${billing === 'annual'
                   ? 'bg-[neutral-900 dark:text-white] text-white'
                   : 'text-[neutral-600 dark:text-neutral-400]'
-              }`}
+                }`}
             >
               Annual
               <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
@@ -116,11 +101,10 @@ export const PricingPage = () => {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`card relative ${
-                plan.highlighted
+              className={`card relative ${plan.highlighted
                   ? 'ring-2 ring-[neutral-900 dark:text-white] shadow-xl scale-105'
                   : ''
-              }`}
+                }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-[neutral-900 dark:text-white] text-white text-sm font-medium rounded-full">
@@ -154,11 +138,10 @@ export const PricingPage = () => {
 
               <Link
                 to={plan.name === 'Enterprise' ? '/contact' : '/auth'}
-                className={`block w-full text-center py-3 px-6 rounded-lg font-medium transition-all mb-6 ${
-                  plan.highlighted
+                className={`block w-full text-center py-3 px-6 rounded-lg font-medium transition-all mb-6 ${plan.highlighted
                     ? 'bg-[neutral-900 dark:text-white] text-white hover:bg-[var(--accent-hover)]'
                     : 'bg-[neutral-50 dark:bg-neutral-800] text-[neutral-900 dark:text-white] hover:bg-[neutral-50 dark:hover:bg-neutral-800]'
-                }`}
+                  }`}
               >
                 {plan.cta}
               </Link>

@@ -42,6 +42,8 @@ if DEBUG:
     ALLOWED_HOSTS += [
         '.ngrok-free.app',   # Free ngrok tunnels (wildcard subdomain)
         '.ngrok.io',         # Paid ngrok tunnels
+        '.netlify.app',
+        'socialdmme.netlify.app',
         'localhost',
         '127.0.0.1',
     ]
@@ -306,9 +308,16 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
+    "https://socialdmme.netlify.app",
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "ngrok-skip-browser-warning",
+]
 
 
 
@@ -361,6 +370,7 @@ CSRF_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF attacks
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:5173',
+    'https://socialdmme.netlify.app',
     'https://yourdomain.com',  # Add your production domain
 ]
 

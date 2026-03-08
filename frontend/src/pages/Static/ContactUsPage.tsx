@@ -25,19 +25,6 @@ export const ContactUsPage = () => {
 
   return (
     <div className="min-h-screen bg-[neutral-50 dark:bg-neutral-800]">
-      {/* Header */}
-      <div className="border-b border-[neutral-200 dark:border-neutral-800] bg-[white dark:bg-neutral-900]">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-2 text-[neutral-600 dark:text-neutral-400] hover:text-[neutral-900 dark:text-white]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold text-[neutral-900 dark:text-white] mb-4">

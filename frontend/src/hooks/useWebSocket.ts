@@ -23,7 +23,7 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
   const [isConnected, setIsConnected] = useState(false);
   const [reconnectCount, setReconnectCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   const connect = useCallback(() => {
