@@ -93,6 +93,13 @@ class InstagramServiceAsync:
                         f"code={err.get('code')} subcode={err.get('error_subcode')} "
                         f"type={err.get('type')} message={err.get('message')!r}"
                     )
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}",
+                        "error_code": err.get('code'),
+                        "error_subcode": err.get('error_subcode'),
+                        "details": response.text,
+                    }
                 except Exception:
                     logger.error(f"[send_dm] Failed HTTP {response.status_code}: {response.text[:500]}")
                 return {"success": False, "error": f"HTTP {response.status_code}", "details": response.text}
