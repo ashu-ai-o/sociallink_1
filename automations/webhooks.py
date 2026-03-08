@@ -237,9 +237,17 @@ def process_change(change, instagram_account):
 
 def handle_comment(comment_data, instagram_account):
     """
-    Handle new comment on post
-    
-    This is where automation magic happens!
+    Handle new comment on post.
+
+    For accounts connected via the Instagram Platform API (instagram_platform),
+    the webhook payload includes from.id and from.username for both Business and
+    Creator (MEDIA_CREATOR) accounts.
+
+    For accounts connected via the legacy Facebook Graph API (facebook_graph),
+    Meta intentionally omits from.id for Creator accounts — webhooks don't fire
+    at all in that case. If from.id is still absent in a platform webhook (e.g.
+    the commenter has privacy restrictions), we fall back to comment_id-based DM
+    delivery, which Instagram allows for comment-triggered automations.
     """
     media_id = comment_data.get('media_id')
     comment_id = comment_data.get('id')
@@ -247,8 +255,23 @@ def handle_comment(comment_data, instagram_account):
     from_user = comment_data.get('from', {})
     user_id = from_user.get('id')
     username = from_user.get('username', '')
-    
-    logger.info(f'[COMMENT] New comment from @{username}: "{comment_text}"')
+
+    # If from.id is missing we can still send a DM via comment_id recipient.
+    # Log a warning so it's observable but don't drop the event.
+    if not user_id:
+        if not comment_id:
+            logger.warning(
+                '[COMMENT] Missing both from.id and comment_id — cannot deliver DM. '
+                'Payload: %s', comment_data
+            )
+            return
+        logger.warning(
+            '[COMMENT] from.id missing in webhook payload — will use comment_id "%s" '
+            'as DM recipient (Creator account privacy restriction). text="%s"',
+            comment_id, comment_text
+        )
+
+    logger.info(f'[COMMENT] New comment from @{username} (uid={user_id}): "{comment_text}"')
     
     # Find matching automations
     automations = Automation.objects.filter(

@@ -2465,6 +2465,14 @@ def instagram_oauth_callback(request):
 
         return _popup_response(True)
 
+    except ValueError as e:
+        if 'CREATOR_ACCOUNT_DETECTED' in str(e):
+            # Tell the frontend to guide the user to the Instagram Direct Login flow,
+            # which supports both Business and Creator (MEDIA_CREATOR) accounts.
+            logger.warning("Creator account detected during facebook_graph OAuth — redirecting to direct login")
+            return _popup_response(False, 'creator_account_use_direct_login')
+        logger.error(f"OAuth callback value error: {str(e)}")
+        return _popup_response(False, 'connection_failed')
     except Exception as e:
         logger.error(f"OAuth callback error: {str(e)}")
         return _popup_response(False, 'connection_failed')
@@ -2561,10 +2569,17 @@ def get_instagram_account_info(access_token):
         ig_response = requests.get(ig_url, params=ig_params, timeout=10)
         ig_response.raise_for_status()
         ig_business_account = ig_response.json().get('instagram_business_account')
-        
+
         if not ig_business_account:
-            logger.error("No Instagram Business Account found")
-            return None
+            # Creator accounts (MEDIA_CREATOR) do not expose instagram_business_account
+            # via the Facebook Graph API / Page connection. They must use the Instagram
+            # Platform API (Direct Login) instead.
+            logger.error(
+                "No instagram_business_account on page %s — this is likely a Creator "
+                "(MEDIA_CREATOR) account. Must reconnect via Instagram Direct Login.",
+                page_id
+            )
+            raise ValueError("CREATOR_ACCOUNT_DETECTED")
         
         instagram_user_id = ig_business_account['id']
         
@@ -2773,18 +2788,25 @@ def instagram_platform_oauth_callback(request):
             connection_method='instagram_platform'
         )
 
-        # 5. Subscribe account to receive webhook events (required for Meta to route webhooks)
+        # 5. Subscribe account to receive webhook events (required for Meta to route webhooks).
+        # subscribed_fields must be sent as POST body fields, not query params.
+        # For Creator (MEDIA_CREATOR) accounts the Instagram Platform API supports
+        # comments and messages subscriptions — unlike the Facebook Graph API which
+        # only fires comment webhooks for Business accounts.
         sub_response = requests.post(
             f"https://graph.instagram.com/v25.0/{platform_user_id}/subscribed_apps",
-            params={
+            data={
                 'subscribed_fields': 'comments,messages',
-                'access_token': long_lived_token
+                'access_token': long_lived_token,
             }
         )
         if sub_response.ok:
-            logger.info(f"[WEBHOOK] Subscribed Instagram account {platform_user_id} to webhook events")
+            logger.info(f"[WEBHOOK] Subscribed Instagram account {platform_user_id} to webhook events (comments + messages)")
         else:
-            logger.warning(f"[WEBHOOK] Failed to subscribe account {platform_user_id} to webhook events: {sub_response.text}")
+            logger.warning(
+                f"[WEBHOOK] Failed to subscribe account {platform_user_id} to webhook events: "
+                f"{sub_response.status_code} {sub_response.text}"
+            )
 
         return _popup_response(True)
 

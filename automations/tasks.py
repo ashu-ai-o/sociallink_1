@@ -219,8 +219,11 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     # ═══════════════════════════════════════════════════════════
     rate_limiter = InstagramRateLimiter(instagram_account)
     
-    # Check 24-hour per-user rule
-    if not rate_limiter.can_send_to_user(trigger.instagram_user_id):
+    # Check 24-hour per-user rule.
+    # When from.id is absent (Creator account privacy edge case), use comment_id
+    # as the dedup key so we don't try to DM the same comment twice.
+    dedup_key = trigger.instagram_user_id or f"comment:{trigger.comment_id}"
+    if not rate_limiter.can_send_to_user(dedup_key):
         trigger.status = 'skipped'
         trigger.error_message = 'Already sent DM to this user in last 24 hours'
         await trigger.asave()
@@ -327,7 +330,7 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     if dm_result['success']:
         # SUCCESS! Increment rate limit counter
         await asyncio.to_thread(rate_limiter.increment_count)
-        await asyncio.to_thread(rate_limiter.mark_user_sent, trigger.instagram_user_id)
+        await asyncio.to_thread(rate_limiter.mark_user_sent, dedup_key)
         
         trigger.status = 'sent'
         trigger.dm_sent_at = timezone.now()
@@ -554,14 +557,17 @@ async def process_automation_comments(automation):
             )
             
             if should_trigger:
+                from_user = comment.get('from') or {}
+                commenter_id = from_user.get('id') or ''
+                commenter_username = from_user.get('username', '')
                 # Create trigger record
                 trigger = await AutomationTrigger.objects.acreate(
                     automation=automation,
-                    instagram_user_id=comment['from']['id'],
-                    instagram_username=comment['from'].get('username', ''),
+                    instagram_user_id=commenter_id,
+                    instagram_username=commenter_username,
                     post_id=post_id,
                     comment_id=comment['id'],
-                    comment_text=comment['text'],
+                    comment_text=comment.get('text', ''),
                     status='pending'
                 )
                 
