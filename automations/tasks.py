@@ -400,7 +400,8 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
         recipient_id=trigger.instagram_user_id,
         message=message,
         buttons=automation.dm_buttons,
-        comment_id=trigger.comment_id or None
+        comment_id=trigger.comment_id or None,
+        ig_user_id=instagram_account.platform_id or instagram_account.instagram_user_id,
     )
     
     # ═══════════════════════════════════════════════════════════
@@ -458,9 +459,29 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
         trigger.status = 'failed'
         trigger.error_message = dm_result.get('error', 'Failed to send DM via Instagram API')
         await trigger.asave()
-        
+
+        error_subcode = dm_result.get('error_subcode')
+        error_code = dm_result.get('error_code')
+
+        # ── Permanent errors: retrying will never help ──────────────────────
+        # subcode 2534014 = IGSID/user not found (user not accessible to app)
+        # subcode 2018034 = User has disabled receiving messages
+        # subcode 2018001 = App not authorized to message this user
+        # subcode   551   = User cannot receive messages
+        PERMANENT_SUBCODES = {2534014, 2018034, 2018001, 551}
+
+        if error_subcode in PERMANENT_SUBCODES:
+            logger.error(
+                f'✗ Trigger #{trigger.id} failed with permanent Instagram error '
+                f'(code={error_code}, subcode={error_subcode}). Not retrying. '
+                f'In development mode ensure the recipient is added as a Test User '
+                f'in your Meta App and has granted instagram_business_manage_messages permission.'
+            )
+            return
+        # ────────────────────────────────────────────────────────────────────
+
         logger.error(f'✗ Failed to send DM for trigger #{trigger.id}: {trigger.error_message}')
-        
+
         # Retry with exponential backoff — max 3 retries to avoid infinite retry storms
         if celery_task.request.retries < 3:
             raise celery_task.retry(countdown=2 ** celery_task.request.retries)

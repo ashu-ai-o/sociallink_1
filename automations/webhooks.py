@@ -266,6 +266,20 @@ def handle_comment(comment_data, instagram_account):
         f'comment_id={comment_id} | from @{username}(id={user_id}) | text="{comment_text}"'
     )
 
+    # ── Warn early when text is empty ────────────────────────────────────────
+    # Meta's Developer Console "Test" button and some webhook subscriptions send
+    # an empty text field.  Automations with match_type='exact' or 'contains'
+    # will never fire when text is ''.  Only match_type='any' can still trigger.
+    if not comment_text:
+        logger.warning(
+            f'[COMMENT] comment_id={comment_id} arrived with empty text. '
+            f'Automations using match_type="exact" or "contains" will NOT trigger. '
+            f'Causes: (1) Meta Dev Console test button sends empty payloads — use a real '
+            f'test-user comment instead; (2) Missing instagram_business_content_publish '
+            f'read scope — check your app permissions; '
+            f'(3) Only automations with match_type="any" will still fire.'
+        )
+    # ─────────────────────────────────────────────────────────────────────────
 
     # Guard: Instagram Platform API sometimes omits 'from.id' — cannot DM without it
     if not user_id:
@@ -348,7 +362,15 @@ def should_trigger_automation(automation, comment_text, post_id):
     
     # Check keywords
     comment_lower = comment_text.lower()
-    
+
+    if not comment_text and automation.trigger_match_type != 'any':
+        logger.warning(
+            f'[FILTER] Automation "{automation.name}" SKIPPED — comment text is empty and '
+            f'match_type="{automation.trigger_match_type}" requires a keyword match. '
+            f'Set match_type to "any" to trigger on every comment regardless of content.'
+        )
+        return False
+
     if automation.trigger_match_type == 'any':
         logger.info(f'[FILTER] Automation "{automation.name}" MATCHED (match_type=any)')
         return True

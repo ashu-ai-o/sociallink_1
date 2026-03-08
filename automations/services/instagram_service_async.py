@@ -42,14 +42,28 @@ class InstagramServiceAsync:
         recipient_id: str,
         message: str,
         buttons: List[Dict] = None,
-        comment_id: str = None
+        comment_id: str = None,
+        ig_user_id: str = None,
     ) -> Dict:
-        """Send DM to user.
+        """Send a private reply DM to a commenter.
 
-        For comment-triggered DMs, pass comment_id so Instagram allows the
-        message even if the user has never messaged the account before.
+        Per Meta docs (Private Replies):
+          POST /<APP_USERS_IG_ID>/messages
+          Authorization: Bearer <ACCESS_TOKEN>
+          Body: { recipient: { comment_id: "<COMMENT_ID>" }, message: { text: "..." } }
+
+        Using comment_id as recipient is required for comment-triggered DMs.
+        It allows messaging any commenter in dev mode (requires commenter to have
+        authorized the app or be a tester with all permissions granted).
         """
-        url = f"{self.base_url}/me/messages"
+        # Use explicit IG user ID if provided, otherwise fall back to /me
+        # Per docs: endpoint is /<APP_USERS_IG_ID>/messages, not /me/messages
+        if ig_user_id:
+            url = f"{self.base_url}/{ig_user_id}/messages"
+        else:
+            url = f"{self.base_url}/me/messages"
+        
+        logger.info(f"[send_dm] Using endpoint: {url}")
 
         # Instagram requires comment_id as recipient for comment-triggered DMs.
         # Using user id directly causes 400 unless the user messaged first.
@@ -80,10 +94,17 @@ class InstagramServiceAsync:
                 })
             payload["message"]["quick_replies"] = quick_replies
         
-        params = {"access_token": self.access_token}
-        
+        # Per Meta Private Replies docs: instagram_platform uses Bearer header
+        # facebook_graph uses access_token query param
+        if self.connection_method == 'instagram_platform':
+            headers = {"Authorization": f"Bearer {self.access_token}"}
+            params = {}
+        else:
+            headers = {}
+            params = {"access_token": self.access_token}
+
         try:
-            response = await self.client.post(url, json=payload, params=params)
+            response = await self.client.post(url, json=payload, params=params, headers=headers)
             if not response.is_success:
                 try:
                     err_json = response.json()
@@ -93,6 +114,13 @@ class InstagramServiceAsync:
                         f"code={err.get('code')} subcode={err.get('error_subcode')} "
                         f"type={err.get('type')} message={err.get('message')!r}"
                     )
+                    return {
+                        "success": False,
+                        "error": f"HTTP {response.status_code}",
+                        "error_code": err.get('code'),
+                        "error_subcode": err.get('error_subcode'),
+                        "details": response.text,
+                    }
                 except Exception:
                     logger.error(f"[send_dm] Failed HTTP {response.status_code}: {response.text[:500]}")
                 return {"success": False, "error": f"HTTP {response.status_code}", "details": response.text}
