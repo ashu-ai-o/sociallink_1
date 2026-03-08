@@ -89,7 +89,7 @@ export const PrivacyPolicyPage = () => {
                 </section>
 
                 {/* 4. Data Deletion Instructions (Meta Requirement) */}
-                <section>
+                <section id="data-deletion">
                     <h2 className="text-2xl font-bold flex items-center gap-3 mb-6">
                         <Trash2 className="w-6 h-6 text-purple-600" />
                         4. Data Deletion Instructions
