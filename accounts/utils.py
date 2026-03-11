@@ -11,30 +11,17 @@ def send_email_with_logo(subject, template_name, context, recipient_list, fail_s
     Helper function to send email with embedded logo
     """
     html_message = render_to_string(template_name, context)
-    # Replace valid file path (used for local preview) with Content-ID (used for email embedding)
-    html_message = html_message.replace('src="logo.png"', 'src="cid:logo"')
+    # Use remote logo if possible for better compatibility
+    logo_url = "https://i.ibb.co/vz0L5Gj/dmme-logo.png" # Example remote logo
+    html_message = html_message.replace('src="logo.png"', f'src="{logo_url}"')
+    html_message = html_message.replace('src="logo_black_trans.svg"', f'src="{logo_url}"')
+    
     plain_message = strip_tags(html_message)
     from_email = settings.DEFAULT_FROM_EMAIL
 
     msg = EmailMultiAlternatives(subject, plain_message, from_email, recipient_list)
     msg.attach_alternative(html_message, "text/html")
 
-    # Path to the logo file relative to this file (apps/users/utils.py)
-    # Logo is in apps/users/templates/emails/logo.png
-    current_dir = os.path.dirname(__file__)
-    logo_path = os.path.join(current_dir, 'templates', 'emails', 'logo.png')
-    
-    if os.path.exists(logo_path):
-        with open(logo_path, 'rb') as f:
-            logo_data = f.read()
-            logo = MIMEImage(logo_data)
-            logo.add_header('Content-ID', '<logo>')
-            logo.add_header('Content-Disposition', 'inline', filename='logo.png')
-            msg.attach(logo)
-    else:
-        print(f"⚠️ WARNING: Email logo not found at {logo_path}")
-        # If strict requirement, you might want to raise an error here
-        # raise FileNotFoundError(f"Logo not found at {logo_path}")
     
     try:
         msg.send(fail_silently=fail_silently)
@@ -166,7 +153,7 @@ def send_enterprise_contact_email(contact):
     try:
         send_email_with_logo(
             subject=subject,
-            template_name="users/emails/enterprise_contact_email.html",
+            template_name="emails/enterprise_contact_email.html",
             context=context,
             recipient_list=[recipient_email]
         )

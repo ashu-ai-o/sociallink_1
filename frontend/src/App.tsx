@@ -24,6 +24,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { NotificationSettings } from './pages/NotificationSettings';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { PricingPage } from './pages/Static/PricingPage';
+import { CheckoutPage } from './pages/CheckoutPage';
 import { AboutPage } from './pages/Static/AboutPage';
 import { ContactUsPage } from './pages/Static/ContactUsPage';
 import { PrivacyPolicyPage } from './pages/Static/PrivacyPolicyPage';
@@ -139,13 +140,16 @@ const GoogleOAuthWrapper = ({ children }: { children: React.ReactNode }) => {
   return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
 };
 
+import { AnimatedBackground } from './components/layout/AnimatedBackground';
+
 function App() {
   return (
     <Provider store={store}>
       <GoogleOAuthWrapper>
         <BrowserRouter>
           <AuthValidator>
-            <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+            <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col relative overflow-hidden">
+              <AnimatedBackground />
               <Toaster
                 position="top-right"
                 toastOptions={{
@@ -176,6 +180,7 @@ function App() {
                 <Route path="/auth" element={<AuthLayout><AuthPage /></AuthLayout>} />
                 <Route path="/auth/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
                 <Route path="/pricing" element={<PublicLayout><PricingPage /></PublicLayout>} />
+                <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
                 <Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} />
                 <Route path="/contact" element={<PublicLayout><ContactUsPage /></PublicLayout>} />
                 <Route path="/privacy-policy" element={<PublicLayout><PrivacyPolicyPage /></PublicLayout>} />

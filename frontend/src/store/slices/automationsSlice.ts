@@ -139,6 +139,30 @@ export const toggleAutomation = createAsyncThunk(
   }
 );
 
+export const fetchTrash = createAsyncThunk(
+  'automations/fetchTrash',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.getAutomationsTrash();
+      return response.results || response;
+    } catch (error: any) {
+      return rejectWithValue(extractErrorMessage(error));
+    }
+  }
+);
+
+export const restoreAutomation = createAsyncThunk(
+  'automations/restore',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const response = await api.restoreAutomation(id);
+      return { id, message: response.message };
+    } catch (error: any) {
+      return rejectWithValue(extractErrorMessage(error));
+    }
+  }
+);
+
 const automationsSlice = createSlice({
   name: 'automations',
   initialState,
@@ -189,6 +213,21 @@ const automationsSlice = createSlice({
         if (index !== -1) {
           state.items[index].is_active = action.payload.is_active;
         }
+      })
+      // Trash
+      .addCase(fetchTrash.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchTrash.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchTrash.rejected, (state) => {
+        state.loading = false;
+      })
+      // Restore
+      .addCase(restoreAutomation.fulfilled, (state, action) => {
+        state.items = state.items.filter((a) => a.id !== action.payload.id);
       });
   },
 });

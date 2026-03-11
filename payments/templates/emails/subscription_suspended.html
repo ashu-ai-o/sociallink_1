@@ -1,0 +1,48 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Subscription suspended{% endblock %}
+
+{% block content %}
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Hi {{ user.first_name|default:user.username }},
+    </p>
+
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Your <strong>{{ plan_name }}</strong> subscription has been suspended after {{ failed_count }} failed payment attempt{{ failed_count|pluralize }}.
+    </p>
+
+    <!-- Status Box -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+        <tr>
+            <td style="padding: 16px; background-color: #fef2f2; border: 1px solid #fecaca;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; color: #000000;">
+                    Account suspended
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #666666;">
+                    Project creation and editing are disabled. Update your payment method to reactivate immediately.
+                </p>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 24px 0; font-size: 14px; color: #666666;">
+        Your projects and data are safe. Once payment is resolved, your account will be reactivated.
+    </p>
+
+    <!-- Button -->
+    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 32px 0;">
+        <tr>
+            <td align="center" style="background-color: #000000; border-radius: 4px;">
+                <a href="{{ reactivate_url }}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;">Update payment method</a>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #000000;">
+        Need help? Reply to this email or contact <a href="mailto:{{ support_email }}" style="color: #000000; text-decoration: underline;">{{ support_email }}</a>
+    </p>
+
+    <p style="margin: 0; font-size: 14px; color: #000000;">
+        — The {{ company_name }} team
+    </p>
+{% endblock %}

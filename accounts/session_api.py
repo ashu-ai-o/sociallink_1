@@ -57,6 +57,21 @@ def get_my_sessions(request):
             queryset = queryset.filter(is_active=True)
 
         queryset = queryset.order_by('-created_at')[:limit]
+        
+        # Repair: If no active sessions exist for this user, track the current one
+        # This fixes issues where session tracking might have failed during login/signup
+        if not queryset.exists():
+            from .session_tracker import track_login
+            try:
+                # We use 'session_repair' method to track this corrective action
+                track_login(request, request.user, method='session_repair')
+                # Re-fetch the queryset
+                queryset = UserSession.objects.filter(user=request.user)
+                if not all_history and active_only:
+                    queryset = queryset.filter(is_active=True)
+                queryset = queryset.order_by('-created_at')[:limit]
+            except Exception as e:
+                logger.warning(f"Failed to repair missing session: {e}")
 
         # Get current session info (from IP + user agent)
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')

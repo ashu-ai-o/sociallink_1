@@ -45,10 +45,47 @@ class AutomationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filter automations by user's Instagram accounts"""
+        """Filter automations by user's Instagram accounts (non-deleted)"""
         return Automation.objects.filter(
             instagram_account__user=self.request.user
         ).select_related('instagram_account')
+    
+    @action(detail=False, methods=['get'])
+    def trash(self, request):
+        """
+        Get list of soft-deleted automations
+        GET /api/automations/trash/
+        """
+        deleted_automations = Automation.all_objects.filter(
+            instagram_account__user=self.request.user,
+            is_deleted=True
+        ).select_related('instagram_account')
+        
+        serializer = self.get_serializer(deleted_automations, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        """
+        Restore a soft-deleted automation
+        POST /api/automations/{id}/restore/
+        """
+        automation = get_object_or_404(
+            Automation.all_objects, 
+            pk=pk, 
+            instagram_account__user=request.user
+        )
+        if not automation.is_deleted:
+            return Response(
+                {'error': 'Automation is not in trash'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        automation.restore()
+        return Response({
+            'success': True,
+            'message': f'Automation "{automation.name}" restored successfully'
+        })
     
     def create(self, request, *args, **kwargs):
         """Override create to log validation errors"""

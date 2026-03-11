@@ -62,7 +62,7 @@ export const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ isOpen, 
                         Delete Your Account
                     </h3>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                        This action is <strong className="text-red-600 dark:text-red-400">permanent and irreversible</strong>. All your data, automations, and connected accounts will be permanently deleted.
+                        Your account will be <strong className="text-red-600 dark:text-red-400">soft-deleted and moved to trash</strong>. You can restore it through support within 30 days. All active automations will be paused.
                     </p>
                 </div>
 

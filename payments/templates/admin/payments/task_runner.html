@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⚙️ Payment Task Runner | Admin</title>
+    <style>
+        /* ── Reset & Base ─────────────────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f1117;
+            --bg-card: #181c27;
+            --bg-card2: #1e2336;
+            --border: #2a2f45;
+            --border-lite: #323756;
+            --accent: #4f6ef7;
+            --accent-glow: rgba(79, 110, 247, 0.18);
+            --green: #22c55e;
+            --green-bg: rgba(34, 197, 94, 0.10);
+            --red: #ef4444;
+            --red-bg: rgba(239, 68, 68, 0.10);
+            --yellow: #f59e0b;
+            --yellow-bg: rgba(245, 158, 11, 0.10);
+            --text: #e2e8f0;
+            --text-muted: #8892ab;
+            --text-dim: #4a5270;
+            --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            --sans: 'DM Sans', 'Outfit', system-ui, sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ── Top Bar ──────────────────────────────────────────────────────────── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 17, 23, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 56px;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .topbar-logo {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-decoration: none;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .topbar-sep {
+            color: var(--border-lite);
+            font-size: 18px;
+            font-weight: 200;
+        }
+
+        .topbar-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-badge {
+            font-size: 11px;
+            font-family: var(--mono);
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(79, 110, 247, 0.3);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .btn-admin {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .btn-admin:hover {
+            color: var(--text);
+            border-color: var(--border-lite);
+            background: var(--bg-card);
+        }
+
+        /* ── Page Layout ──────────────────────────────────────────────────────── */
+        .page {
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 40px 32px 80px;
+        }
+
+        /* ── Page Header ──────────────────────────────────────────────────────── */
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 600px;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 12px;
+        }
+
+        .meta-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* ── Alert Messages ───────────────────────────────────────────────────── */
+        .alerts {
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: var(--green-bg);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: var(--red-bg);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+        }
+
+        .alert-warning {
+            background: var(--yellow-bg);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #fcd34d;
+        }
+
+        .alert-icon {
+            font-size: 16px;
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
+
+        /* ── Stats Bar ────────────────────────────────────────────────────────── */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 18px;
+            transition: border-color 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-lite);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--mono);
+            letter-spacing: -0.03em;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 500;
+        }
+
+        /* ── Task Group ───────────────────────────────────────────────────────── */
+        .task-group {
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .task-group:hover {
+            border-color: var(--border-lite);
+        }
+
+        .group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .group-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.01em;
+        }
+
+        .group-count {
+            font-size: 11px;
+            font-family: var(--mono);
+            background: var(--bg-card2);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+
+        .group-chevron {
+            font-size: 12px;
+            color: var(--text-dim);
+            transition: transform 0.2s;
+        }
+
+        .group-chevron.open {
+            transform: rotate(180deg);
+        }
+
+        .group-body {
+            display: block;
+        }
+
+        .group-body.collapsed {
+            display: none;
+        }
+
+        /* ── Task Row ─────────────────────────────────────────────────────────── */
+        .task-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            transition: background 0.15s;
+        }
+
+        .task-row:last-child {
+            border-bottom: none;
+        }
+
+        .task-row:hover {
+            background: var(--bg-card);
+        }
+
+        .task-row.danger-row {
+            background: rgba(239, 68, 68, 0.03);
+        }
+
+        .task-row.danger-row:hover {
+            background: rgba(239, 68, 68, 0.07);
+        }
+
+        .task-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-label-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .task-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .badge-caution {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--red);
+            background: var(--red-bg);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .task-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            line-height: 1.5;
+        }
+
+        .task-path {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ── Run Button ───────────────────────────────────────────────────────── */
+        .btn-run {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: var(--sans);
+            padding: 7px 16px;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .btn-run-normal {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 0 0 rgba(79, 110, 247, 0);
+        }
+
+        .btn-run-normal:hover {
+            background: #6379f8;
+            box-shadow: 0 0 16px rgba(79, 110, 247, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-run-normal:active {
+            transform: translateY(0);
+        }
+
+        .btn-run-danger {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-run-danger:hover {
+            background: var(--red-bg);
+            border-color: var(--red);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* ── Receipt Email Section ────────────────────────────────────────────── */
+        .receipt-section {
+            margin-top: 32px;
+            border: 1px solid rgba(79, 110, 247, 0.25);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .receipt-header {
+            background: linear-gradient(135deg, rgba(79, 110, 247, 0.12), rgba(79, 110, 247, 0.05));
+            border-bottom: 1px solid rgba(79, 110, 247, 0.2);
+            padding: 16px 20px;
+        }
+
+        .receipt-header h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .receipt-header p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .receipt-steps {
+            padding: 20px;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-glow);
+            border: 1px solid rgba(79, 110, 247, 0.4);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-family: var(--mono);
+        }
+
+        .step-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            padding-top: 2px;
+        }
+
+        .step-text strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .btn-goto-payments {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-decoration: none;
+            background: var(--accent-glow);
+            border: 1px solid rgba(79, 110, 247, 0.3);
+            padding: 7px 14px;
+            border-radius: 7px;
+            transition: all 0.15s;
+            margin-top: 4px;
+        }
+
+        .btn-goto-payments:hover {
+            background: rgba(79, 110, 247, 0.2);
+            border-color: var(--accent);
+        }
+
+        /* ── How It Works ─────────────────────────────────────────────────────── */
+        .howto {
+            margin-top: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .howto h3 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 14px;
+            letter-spacing: 0.02em;
+        }
+
+        .howto-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .howto-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .howto-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .howto-item h4 {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .howto-item p {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: var(--mono);
+            font-size: 11px;
+            background: rgba(79, 110, 247, 0.1);
+            color: var(--accent);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        /* ── Footer ───────────────────────────────────────────────────────────── */
+        .footer {
+            margin-top: 48px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* ── Responsive ───────────────────────────────────────────────────────── */
+        @media (max-width: 640px) {
+            .page {
+                padding: 24px 16px 60px;
+            }
+
+            .topbar {
+                padding: 0 16px;
+            }
+
+            .task-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .btn-run {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Top Navigation Bar ─────────────────────────────────────────────── -->
+    <nav class="topbar">
+        <div class="topbar-left">
+            <a href="/admin/" class="topbar-logo">Django Admin</a>
+            <span class="topbar-sep">/</span>
+            <a href="/admin/payments/" class="topbar-logo">Payments</a>
+            <span class="topbar-sep">/</span>
+            <span class="topbar-title">Task Runner</span>
+        </div>
+        <div class="topbar-right">
+            <span class="topbar-badge">Celery</span>
+            <a href="/admin/" class="btn-admin">← Admin Home</a>
+        </div>
+    </nav>
+
+    <!-- ── Main Page ──────────────────────────────────────────────────────── -->
+    <div class="page">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>⚙️ Payment Task Runner</h1>
+            <p>Manually trigger any payment-related Celery task for testing. Tasks run on your live Celery worker —
+                watch the worker terminal for output.</p>
+            <div class="header-meta">
+                <span class="meta-item"><span class="meta-dot"></span> Worker must be running</span>
+                <span class="meta-item">📋 19 tasks available</span>
+                <span class="meta-item">🔴 Red = modifies live data</span>
+            </div>
+        </div>
+
+        <!-- Django Messages (success/error after task run) -->
+        {% if messages %}
+        <div class="alerts">
+            {% for message in messages %}
+            {% if 'error' in message.tags %}
+            <div class="alert alert-error">
+                <span class="alert-icon">❌</span>
+                <span>{{ message }}</span>
+            </div>
+            {% elif 'warning' in message.tags %}
+            <div class="alert alert-warning">
+                <span class="alert-icon">⚠️</span>
+                <span>{{ message }}</span>
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <span class="alert-icon">✅</span>
+                <span>{{ message }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-value">19</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">7</div>
+                <div class="stat-label">Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--red);">2</div>
+                <div class="stat-label">Caution Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: var(--green);">∞</div>
+                <div class="stat-label">Retry Limit</div>
+            </div>
+        </div>
+
+        <!-- ── Task Groups ─────────────────────────────────────────────────── -->
+
+        {% for group_name, tasks in task_groups.items %}
+        <div class="task-group" id="group-{{ forloop.counter }}">
+
+            <!-- Group Header (clickable to collapse) -->
+            <div class="group-header" data-n="{{ forloop.counter }}" onclick="toggleGroup(this.dataset.n)">
+                <div class="group-header-left">
+                    <span class="group-name">{{ group_name }}</span>
+                    <span class="group-count">{{ tasks|length }}</span>
+                </div>
+                <span class="group-chevron open" id="chevron-{{ forloop.counter }}">▼</span>
+            </div>
+
+            <!-- Group Tasks -->
+            <div class="group-body" id="body-{{ forloop.counter }}">
+                {% for task in tasks %}
+                <div class="task-row {% if task.danger %}danger-row{% endif %}">
+
+                    <!-- Task Info -->
+                    <div class="task-info">
+                        <div class="task-label-row">
+                            <span class="task-label">{{ task.label }}</span>
+                            {% if task.danger %}
+                            <span class="badge-caution">⚠ Caution</span>
+                            {% endif %}
+                        </div>
+                        <div class="task-desc">{{ task.description }}</div>
+                        <div class="task-path">{{ task.task }}</div>
+                    </div>
+
+                    <!-- Run Button -->
+                    <a href="{% url 'admin:payments_run_celery_task' task.id %}"
+                        class="btn-run {% if task.danger %}btn-run-danger{% else %}btn-run-normal{% endif %}"
+                        data-label="{{ task.label }}" data-danger="{% if task.danger %}true{% else %}false{% endif %}"
+                        onclick="return confirmRun(this.dataset.label, this.dataset.danger === 'true');">
+                        ▶ Run Now
+                    </a>
+
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
+        {% endfor %}
+
+        <!-- ── Receipt Email Special Section ──────────────────────────────── -->
+        <div class="receipt-section">
+            <div class="receipt-header">
+                <h3>📧 Send Payment Receipt Email</h3>
+                <p>This task requires a specific Payment ID — run it from the Payments list using the admin action.</p>
+            </div>
+            <div class="receipt-steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        Go to the <strong>Payments list</strong> and find a payment with <strong>status =
+                            success</strong>.
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        Tick the <strong>checkbox</strong> next to one or more payments.
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        In the <strong>Action</strong> dropdown at the top, select <strong>"📧 Send payment receipt
+                            email (via Celery)"</strong> then click <strong>Go</strong>.
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        Check your <strong>Celery worker terminal</strong> — you will see
+                        <code>Receipt email sent for payment &lt;uuid&gt;</code>.
+                    </div>
+                </div>
+                <a href="{% url 'admin:payments_payment_changelist' %}" class="btn-goto-payments">
+                    → Go to Payments List
+                </a>
+            </div>
+        </div>
+
+        <!-- ── How It Works ────────────────────────────────────────────────── -->
+        <div class="howto">
+            <h3>📌 Before You Start</h3>
+            <div class="howto-grid">
+                <div class="howto-item">
+                    <div class="howto-icon">🖥️</div>
+                    <h4>Start the Worker</h4>
+                    <p>Open a terminal and run:<br><code>celery -A ai_platform worker -l info</code><br>This is where
+                        task output will appear.</p>
+                </div>
+                <div class="howto-item">
+                    <div class="howto-icon">▶️</div>
+                    <h4>Run a Task</h4>
+                    <p>Click <strong>Run Now</strong> on any task above. A confirm dialog will appear. Click OK to queue
+                        the task instantly.</p>
+                </div>
+                <div class="howto-item">
+                    <div class="howto-icon">👀</div>
+                    <h4>Watch the Output</h4>
+                    <p>Switch to your worker terminal. You will see the task name, logs, and return value printed in
+                        real-time.</p>
+                </div>
+                <div class="howto-item">
+                    <div class="howto-icon">⚠️</div>
+                    <h4>Caution Tasks</h4>
+                    <p>Red-bordered tasks (like <strong>Reset Daily Tokens</strong>) modify live data for all users.
+                        Only run these intentionally.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Payment Celery Task Runner &nbsp;·&nbsp; Django Admin &nbsp;·&nbsp; Only superusers can access this page
+        </div>
+
+    </div><!-- /.page -->
+
+    <!-- ── JavaScript ─────────────────────────────────────────────────────── -->
+    <script>
+        // ── Collapse/Expand Groups ─────────────────────────────────────────────
+        function toggleGroup(n) {
+            const body = document.getElementById('body-' + n);
+            const chevron = document.getElementById('chevron-' + n);
+            const isOpen = !body.classList.contains('collapsed');
+            body.classList.toggle('collapsed', isOpen);
+            chevron.classList.toggle('open', !isOpen);
+        }
+
+        // ── Confirm Dialog Before Running ──────────────────────────────────────
+        function confirmRun(label, isDanger) {
+            if (isDanger) {
+                return confirm(
+                    '⚠️  CAUTION — This task modifies live data for all users.\n\n' +
+                    'Task: ' + label + '\n\n' +
+                    'Are you absolutely sure you want to run this now?'
+                );
+            }
+            return confirm('Run task now?\n\n' + label + '\n\nThe task will execute on your Celery worker.');
+        }
+
+        // ── Auto-scroll to alerts if present ──────────────────────────────────
+        document.addEventListener('DOMContentLoaded', function () {
+            const alerts = document.querySelector('.alerts');
+            if (alerts) {
+                alerts.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,44 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Your trial ends soon{% endblock %}
+
+{% block content %}
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Hi {{ user.first_name|default:user.username }},
+    </p>
+
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Your {{ plan_name }} trial ends in <strong>{{ hours_remaining }} hours</strong>. After that, you'll lose access to your projects and tokens.
+    </p>
+
+    <!-- Countdown Box -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+        <tr>
+            <td style="padding: 16px; background-color: #f8f8f8; border: 1px solid #e0e0e0; text-align: center;">
+                <p style="margin: 0 0 4px 0; font-size: 13px; color: #666666;">TRIAL ENDS</p>
+                <p style="margin: 0; font-size: 18px; font-weight: 500; color: #000000;">{{ trial_ends_at|date:"F d, Y \a\t g:i A" }}</p>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 24px 0; font-size: 14px; color: #666666;">
+        Upgrade now to keep everything you've built — your projects, tokens, and settings carry over.
+    </p>
+
+    <!-- Button -->
+    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 32px 0;">
+        <tr>
+            <td align="center" style="background-color: #000000; border-radius: 4px;">
+                <a href="{{ upgrade_url }}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;">Choose a plan</a>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #000000;">
+        Questions? Reply to this email or contact <a href="mailto:{{ support_email }}" style="color: #000000; text-decoration: underline;">{{ support_email }}</a>
+    </p>
+
+    <p style="margin: 0; font-size: 14px; color: #000000;">
+        — The {{ company_name }} team
+    </p>
+{% endblock %}

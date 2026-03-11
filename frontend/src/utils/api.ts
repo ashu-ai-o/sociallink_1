@@ -297,6 +297,16 @@ class ApiClient {
     await this.client.post(`/instagram-accounts/${id}/disconnect/`);
   }
 
+  async getInstagramAccountsTrash() {
+    const response = await this.client.get('/instagram-accounts/trash/');
+    return response.data;
+  }
+
+  async restoreInstagramAccount(id: string) {
+    const response = await this.client.post(`/instagram-accounts/${id}/restore/`);
+    return response.data;
+  }
+
   // Instagram OAuth
   async initiateInstagramOAuth() {
     const response = await this.client.get('/auth/instagram/oauth/');
@@ -353,6 +363,16 @@ class ApiClient {
 
   async toggleAutomation(id: string) {
     const response = await this.client.post(`/automations/${id}/toggle/`);
+    return response.data;
+  }
+
+  async getAutomationsTrash() {
+    const response = await this.client.get('/automations/trash/');
+    return response.data;
+  }
+
+  async restoreAutomation(id: string) {
+    const response = await this.client.post(`/automations/${id}/restore/`);
     return response.data;
   }
 
@@ -642,9 +662,103 @@ class ApiClient {
     return response.data;
   }
 
+
   async saveOnboardingStep(step: number) {
     const response = await this.client.post('/auth/onboarding-step/', { step });
     return response.data;
+  }
+
+  // ========================================================================
+  // PAYMENTS & SUBSCRIPTIONS
+  // ========================================================================
+
+  /** Get all active subscription plans (public, no auth needed) */
+  async getPlans() {
+    const response = await this.client.get('/payments/plans/');
+    return response.data;
+  }
+
+  /** Get current user's subscription */
+  async getSubscription() {
+    const response = await this.client.get('/payments/subscription/');
+    return response.data;
+  }
+
+  /** Create a Razorpay order to start a subscription */
+  async createSubscriptionOrder(data: { plan_id: string; billing_cycle: 'monthly' | 'annual' }) {
+    const response = await this.client.post('/payments/subscription/create/', data);
+    return response.data;
+  }
+
+  /** Verify Razorpay payment signature and activate subscription */
+  async verifyPayment(data: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+    plan_id: string;
+    billing_cycle: 'monthly' | 'annual';
+  }) {
+    const response = await this.client.post('/payments/verify/', data);
+    return response.data;
+  }
+
+  /** Record a payment failure (for audit logs) */
+  async recordPaymentFailure(data: {
+    razorpay_order_id: string;
+    razorpay_payment_id?: string;
+    error_code: string;
+    error_description: string;
+    reason: string;
+  }) {
+    const response = await this.client.post('/payments/verify/failure/', data);
+    return response.data;
+  }
+
+  /** Convert a USD amount to the user's local currency */
+  async convertCurrency(amountUsd: number) {
+    const response = await this.client.post('/payments/currency/convert/', { amount_usd: amountUsd });
+    return response.data;
+  }
+
+  /** Preview proration credit when upgrading a plan */
+  async getSubscriptionChangePreview(data: { plan_id: string; billing_cycle: string }) {
+    const response = await this.client.post('/payments/subscription/change-preview/', data);
+    return response.data;
+  }
+
+  /** Save a payment method after successful payment */
+  async savePaymentMethod(data: { razorpay_payment_id: string; is_default?: boolean }) {
+    const response = await this.client.post('/payments/payment-methods/', data);
+    return response.data;
+  }
+
+  /** Get saved payment methods */
+  async getPaymentMethods() {
+    const response = await this.client.get('/payments/payment-methods/');
+    return response.data;
+  }
+
+  /** Get payment history */
+  async getPaymentHistory() {
+    const response = await this.client.get('/payments/history/');
+    return response.data;
+  }
+
+  /** Download invoice PDF */
+  async downloadInvoice(paymentId: string) {
+    const response = await this.client.get(`/payments/invoice/${paymentId}/download/`, {
+      responseType: 'blob',
+    });
+    
+    // Create a download link and click it
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `invoice_${paymentId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
 }
 

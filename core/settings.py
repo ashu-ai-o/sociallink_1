@@ -14,9 +14,8 @@ from datetime import timedelta
 from decouple import config
 
 from pathlib import Path
+# os is still needed for os.path and os.makedirs elsewhere
 import os
-# from dotenv import load_dotenv
-# load_dotenv()
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -70,10 +69,9 @@ INSTALLED_APPS = [
     'accounts',
     'automations',
     'analytics',
-
-    
-   
+    'payments',
 ]
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
@@ -184,9 +182,21 @@ STATIC_ROOT = BASE_DIR / "staticfiles"  # optional for production
 
 
 # Google OAuth Configuration
-GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '').strip()
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', '').strip()
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')
+GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 
+
+# Razorpay Configuration
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
+RAZORPAY_WEBHOOK_SECRET = config('RAZORPAY_WEBHOOK_SECRET', default='')
+if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+    import warnings
+    warnings.warn(
+        "⚠️  RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set in .env. "
+        "Payment features will not work.",
+        stacklevel=1
+    )
 
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -255,21 +265,51 @@ CELERY_BEAT_SCHEDULE = {
 
 
 # Redis for caching and rate limiting
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'CONNECTION_POOL_KWARGS': {
-                'max_connections': 50,
-                'retry_on_timeout': True,
+# Try Redis first, fallback to in-memory cache if Redis is unavailable (local dev)
+if DEBUG:
+    try:
+        import redis
+        r = redis.Redis(host='127.0.0.1', port=6379, socket_connect_timeout=1)
+        r.ping()
+        # Redis is running — use it
+        CACHES = {
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
+                'OPTIONS': {
+                    'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                    'CONNECTION_POOL_KWARGS': {
+                        'max_connections': 50,
+                        'retry_on_timeout': True,
+                    }
+                },
+                'TIMEOUT': 3600,
             }
-        }, 
-
-         'TIMEOUT': 3600,  # 1 hour default
+        }
+    except Exception:
+        # Redis not available — use in-memory cache for local development
+        CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'TIMEOUT': 3600,
+            }
+        }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': config('REDIS_URL', default='redis://localhost:6379/1'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                }
+            },
+            'TIMEOUT': 3600,
+        }
     }
-}
+
 
 
 
@@ -556,3 +596,9 @@ SESSION_COOKIE_SECURE = not DEBUG  # Only send session cookie over HTTPS
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF
 SESSION_COOKIE_AGE = 86400  # 24 hours
+
+
+
+
+
+ 

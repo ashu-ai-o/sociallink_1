@@ -1,0 +1,36 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Action Required: Payment Failed{% endblock %}
+
+{% block hero %}
+<img src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=800" class="hero-img" alt="Payment Failed">
+{% endblock %}
+
+{% block content %}
+<h2>Urgent: Payment Failed</h2>
+<p>We weren't able to process your recent payment for <strong>{{ plan_name|default:"dm-me Subscription" }}</strong>. No charges were made, but your access might be affected if this isn't resolved.</p>
+
+<div style="background-color: #fef2f2; border-radius: 12px; padding: 24px; margin: 32px 0; border: 1px solid #fee2e2;">
+    <div style="font-size: 12px; text-transform: uppercase; color: #ef4444; font-weight: bold; margin-bottom: 4px;">Error Details</div>
+    <div style="font-size: 16px; color: #991b1b; line-height: 1.5;">{{ failure_reason|default:"The transaction was declined by the bank." }}</div>
+</div>
+
+<div style="margin: 32px 0;">
+    <h3 style="margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; color: #94a3b8;">Common Troubleshooting</h3>
+    <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 2;">
+        <li>Verify you have sufficient funds in your account</li>
+        <li>Check that your card hasn't expired or been locked</li>
+        <li>Ensure international transactions are enabled on your card</li>
+        <li>Try linking a different card or payment method</li>
+    </ul>
+</div>
+
+<div style="text-align: center; margin-top: 40px;">
+    <a href="{{ retry_url|default:frontend_url }}" class="btn" style="background-color: #ef4444;">Retry Payment Now</a>
+</div>
+
+<p style="font-size: 14px; color: #64748b; margin-top: 48px;">
+    Questions? We're here. Reach us at <a href="mailto:{{ support_email|default:'support@dm-me.com' }}" style="color: #4f46e5; text-decoration: none;">{{ support_email|default:'support@dm-me.com' }}</a>
+    <br>— The {{ company_name|default:'dm-me' }} Team
+</p>
+{% endblock %}

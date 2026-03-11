@@ -1,0 +1,62 @@
+{% comment %} Aesthetic & Minimal base email template for 'dm-me' {% endcomment %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}dm-me Notification{% endblock %}</title>
+    <style>
+        body { 
+            margin: 0; padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f8fafc; color: #334155; 
+        }
+        .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+        .container { 
+            max-width: 580px; margin: 0 auto; background-color: #ffffff; 
+            border-radius: 16px; overflow: hidden; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+        }
+        .hero-img { width: 100%; height: auto; display: block; }
+        .content { padding: 48px 40px; }
+        .logo-text { 
+            font-size: 24px; font-weight: 800; color: #4f46e5; 
+            text-decoration: none; letter-spacing: -0.5px; 
+            margin-bottom: 24px; display: inline-block;
+        }
+        .footer { padding: 32px; text-align: center; font-size: 13px; color: #94a3b8; }
+        .footer a { color: #4f46e5; text-decoration: none; font-weight: 500; }
+        .btn { 
+            display: inline-block; background-color: #4f46e5; color: #ffffff !important; 
+            padding: 14px 28px; border-radius: 10px; text-decoration: none; 
+            font-weight: 600; margin-top: 24px; 
+        }
+        p { line-height: 1.7; margin-bottom: 20px; }
+        h1, h2 { color: #0f172a; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            {% block hero %}
+            <img src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?auto=format&fit=crop&q=80&w=800" class="hero-img" alt="dm-me">
+            {% endblock %}
+            
+            <div class="content">
+                <a href="{{ frontend_url }}" class="logo-text">dm-me</a>
+                {% block content %}
+                {% endblock %}
+            </div>
+            
+            <div class="footer">
+                <p>&copy; {% now "Y" %} dm-me. All rights reserved.</p>
+                <p>
+                    <a href="{{ frontend_url }}/support">Support</a> &bull; 
+                    <a href="{{ frontend_url }}/settings">Settings</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -22,8 +22,11 @@ import {
   fetchAutomations,
   toggleAutomation,
   deleteAutomation,
+  fetchTrash,
+  restoreAutomation,
 } from '../../store/slices/automationsSlice';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { RefreshCw, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 
@@ -33,13 +36,17 @@ export const AutomationsPage = () => {
     (state) => state.automations
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'trash'>('all');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
 
   useEffect(() => {
-    dispatch(fetchAutomations());
-  }, []);
+    if (filterStatus === 'trash') {
+      dispatch(fetchTrash());
+    } else {
+      dispatch(fetchAutomations());
+    }
+  }, [filterStatus]);
 
   const handleToggle = async (id: string) => {
     try {
@@ -58,11 +65,20 @@ export const AutomationsPage = () => {
     if (!deleteTarget) return;
     try {
       await dispatch(deleteAutomation(deleteTarget.id)).unwrap();
-      toast.success('Automation deleted successfully');
+      toast.success('Automation moved to trash');
     } catch {
       toast.error('Failed to delete automation');
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await dispatch(restoreAutomation(id)).unwrap();
+      toast.success('Automation restored successfully');
+    } catch (error) {
+      toast.error('Failed to restore automation');
     }
   };
 
@@ -142,6 +158,15 @@ export const AutomationsPage = () => {
           >
             Inactive
           </button>
+          <button
+            onClick={() => setFilterStatus('trash')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${filterStatus === 'trash'
+              ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 shadow-sm'
+              : 'text-neutral-600 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400'
+              }`}
+          >
+            Trash
+          </button>
         </div>
       </div>
 
@@ -197,19 +222,21 @@ export const AutomationsPage = () => {
                   </div>
 
                   {/* Toggle Switch */}
-                  <button
-                    onClick={() => handleToggle(automation.id)}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${automation.is_active
-                      ? 'bg-green-500'
-                      : 'bg-neutral-300 dark:bg-neutral-700'
-                      }`}
-                    title={automation.is_active ? 'Pause automation' : 'Activate automation'}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${automation.is_active ? 'translate-x-6' : 'translate-x-0'
+                  {filterStatus !== 'trash' && (
+                    <button
+                      onClick={() => handleToggle(automation.id)}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${automation.is_active
+                        ? 'bg-green-500'
+                        : 'bg-neutral-300 dark:bg-neutral-700'
                         }`}
-                    ></span>
-                  </button>
+                      title={automation.is_active ? 'Pause automation' : 'Activate automation'}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${automation.is_active ? 'translate-x-6' : 'translate-x-0'
+                          }`}
+                      ></span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Automation Details (Keywords & AI) */}
@@ -286,20 +313,32 @@ export const AutomationsPage = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-3">
-                  <Link
-                    to={`/automations/${automation.id}/edit`}
-                    className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(automation.id, automation.name)}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
+                  {filterStatus === 'trash' ? (
+                    <button
+                      onClick={() => handleRestore(automation.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-sm font-medium hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Restore
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        to={`/automations/${automation.id}/edit`}
+                        className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(automation.id, automation.name)}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -336,8 +375,8 @@ export const AutomationsPage = () => {
       <ConfirmModal
         open={!!deleteTarget}
         title="Delete Automation"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
-        confirmLabel="Delete"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This will move it to the trash, where it can be recovered later.`}
+        confirmLabel="Move to Trash"
         cancelLabel="Keep it"
         variant="danger"
         onConfirm={confirmDelete}

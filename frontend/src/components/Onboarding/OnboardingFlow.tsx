@@ -15,21 +15,24 @@ import {
 } from 'lucide-react';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { HoudiniBackground } from './HoudiniBackground';
 
 interface OnboardingSlide {
   title: string;
   description: string;
   icon: React.ReactNode;
   gradient: string;
+  accent: string;
   features: { icon: React.ReactNode; text: string }[];
 }
 
 const slides: OnboardingSlide[] = [
   {
     title: 'Welcome to DmMe',
-    description: 'Transform your Instagram engagement into real business growth with AI-powered automation',
+    description: 'Transform your Instagram engagement into real business growth with AI-powered automation.',
     icon: <Sparkles className="w-16 h-16" />,
-    gradient: 'from-purple-500 to-pink-500',
+    gradient: 'from-purple-500/20 to-pink-500/20',
+    accent: 'purple',
     features: [
       { icon: <Zap className="w-5 h-5" />, text: 'Instant automated responses to comments' },
       { icon: <Send className="w-5 h-5" />, text: 'AI-personalized DMs that convert' },
@@ -38,9 +41,10 @@ const slides: OnboardingSlide[] = [
   },
   {
     title: 'Turn Comments Into Customers',
-    description: 'Automatically engage with every comment on your posts and convert interest into sales',
+    description: 'Automatically engage with every comment on your posts and convert interest into sales.',
     icon: <Target className="w-16 h-16" />,
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'from-blue-500/20 to-cyan-500/20',
+    accent: 'blue',
     features: [
       { icon: <Clock className="w-5 h-5" />, text: 'Respond within seconds, 24/7' },
       { icon: <Sparkles className="w-5 h-5" />, text: 'AI crafts personalized messages' },
@@ -49,13 +53,14 @@ const slides: OnboardingSlide[] = [
   },
   {
     title: 'Setup in 3 Simple Steps',
-    description: 'Get started in less than 5 minutes and watch your engagement soar',
+    description: 'Get started in less than 5 minutes and watch your engagement soar.',
     icon: <Instagram className="w-16 h-16" />,
-    gradient: 'from-orange-500 to-red-500',
+    gradient: 'from-orange-500/20 to-red-500/20',
+    accent: 'orange',
     features: [
-      { icon: <Check className="w-5 h-5" />, text: '1. Connect your Instagram Business account' },
-      { icon: <Check className="w-5 h-5" />, text: '2. Create your first automation workflow' },
-      { icon: <Check className="w-5 h-5" />, text: '3. Watch automations work while you sleep' },
+      { icon: <Check className="w-5 h-5" />, text: 'Connect your Instagram account' },
+      { icon: <Check className="w-5 h-5" />, text: 'Create your first automation' },
+      { icon: <Check className="w-5 h-5" />, text: 'Watch automations work for you' },
     ],
   },
 ];
@@ -104,17 +109,11 @@ export const OnboardingFlow = () => {
       await api.completeOnboarding();
       localStorage.setItem('onboarding_completed', 'true');
       localStorage.setItem('onboarding_step', String(slides.length));
-
-      // Explicitly update the profile to sync React state immediately if needed
       await api.getUserProfile();
-
       toast.success('Welcome to DmMe!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
-      toast.error('Failed to save progress, but letting you in.');
-
-      // Still allow navigation even if API fails, as a fallback
       localStorage.setItem('onboarding_completed', 'true');
       localStorage.setItem('onboarding_step', String(slides.length));
       navigate('/dashboard');
@@ -124,156 +123,165 @@ export const OnboardingFlow = () => {
   const slide = slides[currentSlide];
   const progress = ((currentSlide + 1) / slides.length) * 100;
 
+  const accentColor = slide.accent === 'purple' ? 'purple' : slide.accent === 'blue' ? 'blue' : 'orange';
+  const progressGradient = slide.accent === 'purple' 
+    ? 'from-purple-500 to-pink-500' 
+    : slide.accent === 'blue' 
+    ? 'from-blue-500 to-cyan-500' 
+    : 'from-orange-500 to-red-600';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Step {currentSlide + 1} of {slides.length}
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6 relative overflow-hidden">
+      <HoudiniBackground />
+
+      <div className="max-w-4xl w-full relative z-10">
+        {/* Progress System */}
+        <header className="mb-12 animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-bold tracking-widest uppercase text-neutral-500">
+              Onboarding <span className="text-white ml-2">Step {currentSlide + 1} / {slides.length}</span>
             </span>
             <button
               onClick={handleSkip}
-              className="text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              className="text-sm font-medium text-neutral-400 hover:text-white transition-all flex items-center gap-1 group"
             >
-              Skip
+              Skip Introduction
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
-          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden blur-[0.5px]">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 ease-out"
+              className={`h-full bg-gradient-to-r ${progressGradient} transition-all duration-700 ease-out shadow-[0_0_20px_rgba(168,85,247,0.4)]`}
               style={{ width: `${progress}%` }}
             />
           </div>
-        </div>
+        </header>
 
-        {/* Main Content Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden">
-          {/* Gradient Header */}
-          <div className={`bg-gradient-to-r ${slide.gradient} p-12 text-white relative overflow-hidden`}>
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute -top-24 -right-24 w-96 h-96 bg-white rounded-full blur-3xl" />
-              <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-white rounded-full blur-3xl" />
-            </div>
-
-            <div className="relative z-10 text-center">
-              <div className="inline-flex items-center justify-center mb-6 animate-float">
-                {slide.icon}
-              </div>
-              <h1 className="text-4xl font-bold mb-4 animate-fade-in">
-                {slide.title}
-              </h1>
-              <p className="text-xl text-white/90 max-w-2xl mx-auto animate-fade-in-delayed">
-                {slide.description}
-              </p>
-            </div>
-          </div>
-
-          {/* Features List */}
-          <div className="p-12">
-            <div className="space-y-6 max-w-2xl mx-auto">
-              {slide.features.map((feature, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover-lift cursor-default border border-transparent hover:border-gray-200 dark:hover:border-gray-600"
-                  style={{
-                    animation: `slideInFromLeft 0.5s ease-out ${index * 0.1}s both`,
-                  }}
-                >
-                  <div className={`p-3 rounded-lg bg-gradient-to-r ${slide.gradient} text-white flex-shrink-0 transition-transform duration-300 hover:scale-110`}>
-                    {feature.icon}
+        {/* Glassmorphism Card */}
+        <main className="relative group">
+          {/* Subtle Glow Background */}
+          <div className={`absolute -inset-1 bg-gradient-to-r ${progressGradient} rounded-[2rem] blur-2xl opacity-10 group-hover:opacity-20 transition-opacity duration-500`}></div>
+          
+          <div className="relative bg-neutral-900/40 backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden min-h-[500px] flex flex-col">
+            <div className="grid md:grid-cols-2 flex-1">
+              {/* Visual Side */}
+              <div className={`p-12 flex flex-col items-center justify-center text-center relative overflow-hidden bg-gradient-to-br ${slide.gradient}`}>
+                <div className="absolute inset-0 bg-neutral-900/20 backdrop-blur-[2px]"></div>
+                
+                <div className="relative z-10 space-y-8">
+                  <div className="inline-flex items-center justify-center p-6 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-md animate-float shadow-2xl">
+                    <div className={`text-${accentColor}-400`}>
+                      {slide.icon}
+                    </div>
                   </div>
-                  <p className="text-lg text-gray-700 dark:text-gray-300 flex-1 pt-2">
-                    {feature.text}
-                  </p>
+                  <div className="space-y-4">
+                    <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight">
+                      {slide.title}
+                    </h1>
+                    <p className="text-lg text-neutral-400 font-medium max-w-xs mx-auto">
+                      {slide.description}
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="px-12 pb-12">
-            <div className="flex items-center justify-between gap-4">
-              <button
-                onClick={handlePrev}
-                disabled={currentSlide === 0}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${currentSlide === 0
-                  ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-              >
-                <ChevronLeft className="w-5 h-5" />
-                Previous
-              </button>
-
-              <div className="flex gap-2">
-                {slides.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
-                      ? 'w-8 bg-gradient-to-r from-purple-500 to-pink-500'
-                      : 'w-2 bg-gray-300 dark:bg-gray-600'
-                      }`}
-                  />
-                ))}
               </div>
 
-              <button
-                onClick={handleNext}
-                disabled={completing}
-                className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {completing ? (
-                  'Completing...'
-                ) : currentSlide === slides.length - 1 ? (
-                  <>
-                    Get Started
-                    <Check className="w-5 h-5" />
-                  </>
-                ) : (
-                  <>
-                    Next
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+              {/* Content Side */}
+              <div className="p-12 flex flex-col justify-between bg-neutral-900/40">
+                <div className="space-y-6">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-500 mb-8">
+                    Key Features
+                  </h3>
+                  <div className="space-y-4">
+                    {slide.features.map((feature, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all duration-300 group/item"
+                        style={{
+                          animation: `slideInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) ${index * 0.1}s both`,
+                        }}
+                      >
+                        <div className={`p-2.5 rounded-xl bg-neutral-800 text-${accentColor}-400 group-hover/item:scale-110 transition-transform duration-300`}>
+                          {feature.icon}
+                        </div>
+                        <span className="text-neutral-300 font-medium tracking-tight">
+                          {feature.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-        {/* Additional Info */}
-        <div className="mt-8 text-center">
-          <div className="flex items-center justify-center gap-6 text-sm text-gray-600 dark:text-gray-400">
-            <div className="flex items-center gap-2 animate-fade-in">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span>Secure & Private</span>
-            </div>
-            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
-            <div className="flex items-center gap-2 animate-fade-in-delayed">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-              <span>No credit card required</span>
+                {/* Navigation Controls */}
+                <div className="pt-12 flex items-center justify-between">
+                  <button
+                    onClick={handlePrev}
+                    disabled={currentSlide === 0}
+                    className={`p-3 rounded-xl border border-white/10 transition-all ${currentSlide === 0
+                      ? 'text-neutral-700 border-neutral-800 cursor-not-allowed'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                      }`}
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+
+                  <div className="flex gap-1.5">
+                    {slides.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`h-1.5 rounded-full transition-all duration-500 ${index === currentSlide
+                          ? `w-8 bg-gradient-to-r ${progressGradient}`
+                          : 'w-1.5 bg-neutral-800'
+                          }`}
+                      />
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleNext}
+                    disabled={completing}
+                    className={`group relative flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white overflow-hidden transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50`}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-r ${progressGradient} opacity-90 group-hover:opacity-100 transition-opacity`}></div>
+                    <span className="relative z-10 flex items-center gap-2">
+                      {completing ? (
+                        'Saving...'
+                      ) : currentSlide === slides.length - 1 ? (
+                        <>
+                          Launch App
+                          <Sparkles className="w-5 h-5" />
+                        </>
+                      ) : (
+                        <>
+                          Continue
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </main>
+
+        <footer className="mt-12 flex items-center justify-center gap-8 text-neutral-500 font-medium text-xs tracking-widest uppercase">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+            Enterprise Grade Security
+          </div>
+          <div className="w-1 h-1 rounded-full bg-neutral-800"></div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+            Powered by Meta AI
+          </div>
+        </footer>
       </div>
 
       <style>{`
-        @keyframes slideInFromLeft {
+        @keyframes slideInUp {
           from {
             opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
@@ -281,45 +289,41 @@ export const OnboardingFlow = () => {
           }
         }
 
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px);
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
           }
-          50% {
-            transform: translateY(-10px);
+          to {
+            opacity: 1;
           }
         }
 
-        @keyframes shimmer {
-          0% {
-            background-position: -1000px 0;
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
           }
-          100% {
-            background-position: 1000px 0;
+          50% {
+            transform: translateY(-20px) rotate(2deg);
           }
         }
 
         .animate-fade-in {
-          animation: fadeIn 0.6s ease-out;
-        }
-
-        .animate-fade-in-delayed {
-          animation: fadeIn 0.6s ease-out 0.2s both;
+          animation: fadeIn 0.8s ease-out;
         }
 
         .animate-float {
-          animation: float 3s ease-in-out infinite;
+          animation: float 6s ease-in-out infinite;
         }
 
-        .hover-lift {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .hover-lift:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        .text-purple-400 { color: #c084fc; }
+        .text-blue-400 { color: #60a5fa; }
+        .text-orange-400 { color: #fb923c; }
+        
+        body {
+          background-color: #0a0a0a;
         }
       `}</style>
     </div>
   );
 };
+

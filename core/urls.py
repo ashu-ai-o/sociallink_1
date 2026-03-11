@@ -37,8 +37,8 @@ urlpatterns = [
     path('api/', include('automations.urls')),
     path('api/auth/', include('accounts.urls')),
     path('api/analytics/', include('analytics.urls')),
-    
-    
+    path('api/payments/', include('payments.urls')),
+
     # Health check endpoint
     path('health/', lambda request: __import__('django.http').JsonResponse({'status': 'healthy'})),
 ]

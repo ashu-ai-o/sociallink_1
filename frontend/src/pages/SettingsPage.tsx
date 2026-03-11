@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Instagram, RefreshCw, Trash2, CheckCircle2, AlertCircle, User, Mail,
-  Shield, Bell, Lock, LogOut, ChevronRight, Camera, KeyRound, MessageSquare
+  Shield, Bell, Lock, ChevronRight, KeyRound, MessageSquare,
+  CreditCard, Zap, Crown, Sparkles, TrendingUp, ArrowRight, Calendar,
+  ExternalLink, Package, Clock, XCircle, Download
 } from 'lucide-react';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -10,6 +12,8 @@ import { TwoFactorSetup } from '../components/Security/TwoFactorSetup';
 import { ActiveSessions } from '../components/Security/ActiveSessions';
 import { DeleteAccountModal } from '../components/DeleteAccountModal';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { useSubscription } from '../hooks/useSubscription';
+import type { Subscription } from '../types/payments';
 
 interface InstagramAccount {
   id: string;
@@ -33,12 +37,33 @@ interface UserProfile {
   is_email_verified: boolean;
 }
 
-type SettingsTab = 'instagram' | 'profile' | 'security' | 'account';
+type SettingsTab = 'instagram' | 'profile' | 'security' | 'billing' | 'account';
+
+// ── Plan icon helper ──────────────────────────────────────────────────────
+const getPlanIcon = (planName?: string) => {
+  const n = (planName ?? '').toLowerCase();
+  if (n === 'free' || n === 'starter') return Sparkles;
+  if (n === 'pro') return Zap;
+  if (n === 'business') return TrendingUp;
+  if (n === 'enterprise') return Crown;
+  return Package;
+};
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  active:    { label: 'Active',    color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/30' },
+  trial:     { label: 'Trial',     color: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  cancelled: { label: 'Cancelled', color: 'text-red-600 dark:text-red-400',       bg: 'bg-red-100 dark:bg-red-900/30' },
+  expired:   { label: 'Expired',   color: 'text-amber-600 dark:text-amber-400',   bg: 'bg-amber-100 dark:bg-amber-900/30' },
+  past_due:  { label: 'Past Due',  color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+};
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('instagram');
   const [accounts, setAccounts] = useState<InstagramAccount[]>([]);
+  const [trashAccounts, setTrashAccounts] = useState<InstagramAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingTrash, setLoadingTrash] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -58,13 +83,43 @@ export const SettingsPage: React.FC = () => {
     account_issues: true,
   });
   const [notifLoading, setNotifLoading] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const navigate = useNavigate();
+
+  const { currentSubscription, loading: subLoading, fetchSubscription } = useSubscription();
 
   useEffect(() => {
     loadAccounts();
     loadProfile();
     loadNotifPreferences();
+    loadTrashAccounts();
   }, []);
+
+  // Load billing history when billing tab is active
+  useEffect(() => {
+    if (activeTab === 'billing' && paymentHistory.length === 0) {
+      setHistoryLoading(true);
+      api.getPaymentHistory()
+        .then(data => {
+          const payments = Array.isArray(data) ? data : (data?.payments || data?.results || []);
+          setPaymentHistory(payments);
+        })
+        .catch(() => {})
+        .finally(() => setHistoryLoading(false));
+    }
+  }, [activeTab]);
+
+  const handleDownloadInvoice = async (paymentId: string) => {
+    try {
+      toast.loading('Preparing your invoice...', { id: 'invoice-download' });
+      await api.downloadInvoice(paymentId);
+      toast.success('Invoice downloaded successfully', { id: 'invoice-download' });
+    } catch (error) {
+      console.error('Failed to download invoice:', error);
+      toast.error('Failed to download invoice', { id: 'invoice-download' });
+    }
+  };
 
   const loadAccounts = async () => {
     try {
@@ -76,6 +131,18 @@ export const SettingsPage: React.FC = () => {
       toast.error('Failed to load Instagram accounts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTrashAccounts = async () => {
+    try {
+      setLoadingTrash(true);
+      const data = await api.getInstagramAccountsTrash();
+      setTrashAccounts(data.results || data || []);
+    } catch (error) {
+      console.error('Failed to load trash accounts:', error);
+    } finally {
+      setLoadingTrash(false);
     }
   };
 
@@ -218,11 +285,23 @@ export const SettingsPage: React.FC = () => {
     try {
       await api.disconnectInstagram(disconnectTarget.id);
       await loadAccounts();
-      toast.success('Account disconnected');
+      await loadTrashAccounts();
+      toast.success('Account moved to trash');
     } catch (error) {
       toast.error('Failed to disconnect account');
     } finally {
       setDisconnectTarget(null);
+    }
+  };
+
+  const handleRestoreAccount = async (id: string, username: string) => {
+    try {
+      await api.restoreInstagramAccount(id);
+      await loadAccounts();
+      await loadTrashAccounts();
+      toast.success(`@${username} restored successfully`);
+    } catch (error) {
+      toast.error('Failed to restore account');
     }
   };
 
@@ -237,6 +316,7 @@ export const SettingsPage: React.FC = () => {
     { key: 'instagram' as const, label: 'Instagram', icon: Instagram },
     { key: 'profile' as const, label: 'Profile', icon: User },
     { key: 'security' as const, label: 'Security', icon: Shield },
+    { key: 'billing' as const, label: 'Billing', icon: CreditCard },
     { key: 'account' as const, label: 'Account', icon: KeyRound },
   ];
 
@@ -464,6 +544,57 @@ export const SettingsPage: React.FC = () => {
               </p>
             </div>
           )}
+
+          {/* Trash Section */}
+          <div className="mt-12 pt-8 border-t border-neutral-100 dark:border-neutral-800">
+            <button
+              onClick={() => setShowTrash(!showTrash)}
+              className="flex items-center gap-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              {showTrash ? 'Hide Deleted Accounts' : 'View Deleted Accounts'}
+              {trashAccounts.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-neutral-800 text-xs font-bold">
+                  {trashAccounts.length}
+                </span>
+              )}
+            </button>
+
+            {showTrash && (
+              <div className="mt-6 space-y-4 animate-slide-up">
+                {loadingTrash ? (
+                  <div className="h-20 bg-neutral-50 dark:bg-neutral-900/50 rounded-xl animate-pulse" />
+                ) : trashAccounts.length > 0 ? (
+                  trashAccounts.map((account) => (
+                    <div key={account.id} className="flex items-center justify-between p-4 bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+                      <div className="flex items-center gap-4 grayscale">
+                        {account.profile_picture_url ? (
+                          <img src={account.profile_picture_url} alt={account.username} className="w-10 h-10 rounded-full opacity-60" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-500 font-bold">
+                            {account.username[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">@{account.username}</h4>
+                          <p className="text-xs text-neutral-500">Deleted recently</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRestoreAccount(account.id, account.username)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs font-semibold hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-colors"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Restore
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-neutral-500 italic py-4">No deleted accounts to show.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -565,6 +696,231 @@ export const SettingsPage: React.FC = () => {
         </div>
       )}
 
+      {/* ==================== Billing Tab ==================== */}
+      {activeTab === 'billing' && (
+        <div className="space-y-6">
+          {/* Current Plan Card */}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+            {/* Gradient Header */}
+            <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-indigo-100 text-sm font-medium mb-1">Current Plan</p>
+                  <h2 className="text-2xl font-bold text-white">
+                    {subLoading ? '—' : currentSubscription?.plan?.display_name ?? 'Free'}
+                  </h2>
+                  <p className="text-indigo-200 text-sm mt-1">
+                    {currentSubscription?.billing_cycle
+                      ? `Billed ${currentSubscription.billing_cycle}`
+                      : 'No active paid subscription'}
+                  </p>
+                </div>
+                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
+                  {(() => {
+                    const Icon = getPlanIcon(currentSubscription?.plan?.name);
+                    return <Icon className="w-7 h-7 text-white" />;
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {subLoading ? (
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-48" />
+                  <div className="h-4 bg-neutral-200 dark:bg-neutral-700 rounded w-36" />
+                </div>
+              ) : currentSubscription ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Status */}
+                    <div>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Status</p>
+                      {(() => {
+                        const cfg = STATUS_CONFIG[currentSubscription.status] ?? STATUS_CONFIG.active;
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.color}`}>
+                            <CheckCircle2 className="w-3 h-3" />
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Next billing */}
+                    {currentSubscription.next_billing_date && (
+                      <div>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Next billing</p>
+                        <p className="text-sm font-medium text-neutral-900 dark:text-white flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+                          {new Date(currentSubscription.next_billing_date).toLocaleDateString('en-IN', {
+                            day: 'numeric', month: 'short', year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Days remaining */}
+                    {currentSubscription.days_until_renewal != null && (
+                      <div>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Renews in</p>
+                        <p className="text-sm font-medium text-neutral-900 dark:text-white flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                          {currentSubscription.days_until_renewal} days
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <Link
+                    to="/pricing"
+                    id="settings-manage-plan-btn"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 flex-shrink-0"
+                  >
+                    Manage Plan <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      You're on the <strong className="text-neutral-900 dark:text-white">Free plan</strong>. Upgrade to unlock more automations and DMs.
+                    </p>
+                  </div>
+                  <Link
+                    to="/pricing"
+                    id="settings-upgrade-btn"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg shadow-indigo-500/20 flex-shrink-0"
+                  >
+                    <Zap className="w-4 h-4" /> Upgrade Now
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Plan feature highlights if subscribed */}
+          {currentSubscription?.plan && (
+            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+                <Package className="w-4 h-4 text-indigo-500" />
+                Plan Features
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {Object.entries(currentSubscription.plan.features ?? {}).map(([key, val]) => {
+                  if (!val) return null;
+                  const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  return (
+                    <div key={key} className="flex items-center gap-2 text-sm">
+                      <div className="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 className="w-2.5 h-2.5 text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                      <span className="text-neutral-600 dark:text-neutral-300 text-xs">
+                        {typeof val === 'boolean' ? label : `${label}: ${val}`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Upgrade prompt for free users */}
+          {!currentSubscription && (
+            <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-neutral-900 dark:text-white mb-1">Unlock more with Pro</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
+                    Get 10 automations, 5,000 DMs/month, advanced analytics and AI personalization.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      to="/pricing"
+                      id="settings-view-plans-btn"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+                    >
+                      View Plans <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <Link
+                      to="/contact"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                    >
+                      Contact Sales
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payment History */}
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6">
+            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-indigo-500" />
+              Payment History
+            </h3>
+
+            {historyLoading ? (
+              <div className="space-y-3 animate-pulse">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 bg-neutral-100 dark:bg-neutral-800 rounded-xl" />
+                ))}
+              </div>
+            ) : paymentHistory.length > 0 ? (
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                {paymentHistory.map((payment: any, i: number) => (
+                  <div key={payment.id ?? i} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-900 dark:text-white">
+                        {payment.subscription_plan || payment.description || 'Subscription'}
+                      </p>
+                      <p className="text-xs text-neutral-400">
+                        {payment.created_at
+                          ? new Date(payment.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : '—'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-neutral-900 dark:text-white">
+                        {payment.currency === 'INR' ? '₹' : '$'}{Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                        ['success', 'captured', 'paid'].includes(payment.status)
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                      }`}>
+                        {['success', 'captured', 'paid'].includes(payment.status) ? 'Paid' : payment.status}
+                      </span>
+                      {['success', 'captured', 'paid'].includes(payment.status) && (
+                        <button
+                          onClick={() => handleDownloadInvoice(payment.id)}
+                          className="p-1.5 rounded-lg text-neutral-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all"
+                          title="Download Invoice"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CreditCard className="w-10 h-10 text-neutral-300 dark:text-neutral-700 mx-auto mb-3" />
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">No payment history yet.</p>
+                <Link to="/pricing" className="text-sm text-indigo-500 hover:text-indigo-600 mt-1 inline-block">
+                  View plans →
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ==================== Account Tab ==================== */}
       {activeTab === 'account' && (
         <div className="space-y-6">
@@ -634,11 +990,10 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Danger Zone */}
           <div className="bg-white dark:bg-neutral-900 rounded-2xl p-8 border border-red-200 dark:border-red-900/50">
             <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">Danger Zone</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-              Once you delete your account, there is no going back. Please be certain.
+              Your account will be soft-deleted. You can restore it through support within 30 days.
             </p>
             <button
               onClick={() => setShowDeleteModal(true)}
@@ -657,9 +1012,10 @@ export const SettingsPage: React.FC = () => {
       {/* Disconnect Instagram Confirm Modal */}
       <ConfirmModal
         open={!!disconnectTarget}
-        title="Disconnect Account"
-        message={`Are you sure you want to disconnect @${disconnectTarget?.username}? You can reconnect it at any time.`}
-        confirmLabel="Disconnect"
+        title="Disconnect Instagram"
+        message={`Are you sure you want to disconnect @${disconnectTarget?.username}? This will move the account to the trash, and its automations will be paused. You can restore it later if needed.`}
+        confirmLabel="Disconnect & Move to Trash"
+        cancelLabel="Keep Connection"
         variant="danger"
         onConfirm={confirmDisconnect}
         onCancel={() => setDisconnectTarget(null)}

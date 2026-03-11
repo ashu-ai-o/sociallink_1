@@ -1,0 +1,68 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Plan change scheduled{% endblock %}
+
+{% block content %}
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Hi {{ user.first_name|default:user.username }},
+    </p>
+
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Your plan will change from <strong>{{ current_plan }}</strong> to <strong>{{ new_plan }}</strong> on your next renewal date.
+    </p>
+
+    <!-- Change Details -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; border: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Current plan</td>
+                        <td align="right" style="font-size: 14px; color: #000000;">{{ current_plan }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">New plan</td>
+                        <td align="right" style="font-size: 14px; font-weight: 500; color: #000000;">{{ new_plan }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 12px 16px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Change date</td>
+                        <td align="right" style="font-size: 14px; color: #000000;">{{ change_date|date:"F d, Y" }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 24px 0; font-size: 14px; color: #666666;">
+        You can cancel this change anytime before the renewal date from your subscription settings.
+    </p>
+
+    <!-- Button -->
+    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 32px 0;">
+        <tr>
+            <td align="center" style="background-color: #000000; border-radius: 4px;">
+                <a href="{{ frontend_url }}/settings" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;">Manage subscription</a>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #000000;">
+        Questions? Reply to this email or contact <a href="mailto:{{ support_email }}" style="color: #000000; text-decoration: underline;">{{ support_email }}</a>
+    </p>
+
+    <p style="margin: 0; font-size: 14px; color: #000000;">
+        — The {{ company_name }} team
+    </p>
+{% endblock %}

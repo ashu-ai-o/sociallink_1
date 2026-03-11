@@ -1,0 +1,43 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Payment Receipt - {{ invoice_number }}{% endblock %}
+
+{% block hero %}
+<img src="https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&q=80&w=800" class="hero-img" alt="Payment Successful">
+{% endblock %}
+
+{% block content %}
+<h2>Great news, {{ user.first_name|default:user.username }}!</h2>
+<p>Your payment for <strong>{{ plan_name|default:"dm-me Subscription" }}</strong> was successful. We've attached a PDF copy of your invoice to this email for your records.</p>
+
+<div style="background-color: #f8fafc; border-radius: 12px; padding: 24px; margin: 32px 0;">
+    <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+        <span style="font-size: 12px; text-transform: uppercase; color: #94a3b8; font-weight: bold;">Amount Paid</span>
+        <div style="font-size: 24px; font-weight: 800; color: #0f172a;">{{ currency }} {{ amount }}</div>
+    </div>
+    
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
+        <tr>
+            <td style="color: #64748b; padding: 8px 0;">Invoice Number</td>
+            <td align="right" style="color: #0f172a; font-weight: 600;">#{{ invoice_number }}</td>
+        </tr>
+        <tr>
+            <td style="color: #64748b; padding: 8px 0;">Payment Date</td>
+            <td align="right" style="color: #0f172a;">{{ payment_date|date:"M d, Y" }}</td>
+        </tr>
+        <tr>
+            <td style="color: #64748b; padding: 8px 0;">Plan</td>
+            <td align="right" style="color: #0f172a;">{{ plan_name }}</td>
+        </tr>
+    </table>
+</div>
+
+<div style="text-align: center; margin-top: 40px;">
+    <a href="{{ frontend_url }}/settings" class="btn">View Billing Settings</a>
+</div>
+
+<p style="font-size: 14px; color: #64748b; margin-top: 48px;">
+    Need help? Reach out at <a href="mailto:{{ company_email }}" style="color: #4f46e5; text-decoration: none;">{{ company_email }}</a>
+    <br>— The {{ company_name }} Team
+</p>
+{% endblock %}

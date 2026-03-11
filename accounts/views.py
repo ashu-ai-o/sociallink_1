@@ -26,7 +26,8 @@ from .serializers import (
     TwoFactorVerifySetupSerializer,
     TwoFactorVerifyLoginSerializer,
     TwoFactorDisableSerializer,
-    TwoFactorRegenerateBackupCodesSerializer
+    TwoFactorRegenerateBackupCodesSerializer,
+    GoogleAuthSerializer
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -38,6 +39,8 @@ from django.http import HttpResponse
 from django.db import transaction
 from django.utils import timezone
 import requests
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 import secrets
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
@@ -48,6 +51,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+from .session_tracker import track_login, track_signup
 
 
 # class UserRegistrationView(generics.CreateAPIView):
@@ -486,7 +490,7 @@ class CheckUsernameView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-from .session_tracker import track_login, track_signup
+
 class LoginView(APIView):
     """
     User login endpoint
@@ -1207,31 +1211,37 @@ class GoogleAuthView(APIView):
 
         google_token = serializer.validated_data['google_token']
 
-          # ✅ ADD THIS LOGGING
-        # print(f"🔍 Google OAuth Debug:")
-        # print(f"   - Token received: {google_token[:50]}...")
-        # print(f"   - CLIENT_ID configured: {bool(settings.GOOGLE_OAUTH_CLIENT_ID)}")
-        # print(f"   - CLIENT_ID value: {settings.GOOGLE_OAUTH_CLIENT_ID[:20]}...")
-
 
         try:
-            # Verify Google token
-            idinfo = id_token.verify_oauth2_token(
-                google_token,
-                google_requests.Request(),
-                settings.GOOGLE_OAUTH_CLIENT_ID
-            )
-
-
-            # print(f"✅ Google token verified successfully")
+            # First, try to verify as an ID Token (JWT)
+            try:
+                idinfo = id_token.verify_oauth2_token(
+                    google_token,
+                    google_requests.Request(),
+                    settings.GOOGLE_OAUTH_CLIENT_ID
+                )
+            except Exception:
+                # If that fails (e.g., it's an Access Token instead of an ID Token)
+                # Use Google's userinfo endpoint to get user details.
+                userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+                resp = requests.get(userinfo_url, params={'access_token': google_token})
+                if resp.status_code != 200:
+                    raise ValueError("Invalid Google token (neither a valid ID token nor a valid Access token)")
+                idinfo = resp.json()
             # print(f"   - Email: {idinfo.get('email')}")
             # print(f"   - Name: {idinfo.get('name')}")
 
-            if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            # Safe issuer check (identity tokens have 'iss', access tokens retrieved via userinfo might not)
+            issuer = idinfo.get('iss')
+            if issuer and issuer not in ['accounts.google.com', 'https://accounts.google.com']:
                 raise ValueError('Wrong issuer.')
 
-            google_id = idinfo['sub']
-            email = idinfo['email']
+            google_id = idinfo.get('sub')
+            email = idinfo.get('email')
+            
+            if not google_id or not email:
+                raise ValueError("Google token is missing required profile information (sub or email)")
+
             first_name = idinfo.get('given_name', '')
             last_name = idinfo.get('family_name', '')
             profile_picture = idinfo.get('picture', '')
@@ -1248,8 +1258,14 @@ class GoogleAuthView(APIView):
                 }, status=status.HTTP_403_FORBIDDEN)
 
             # Try to get user by google_id first
+            # We use all_objects to check for soft-deleted users as well
             try:
-                user = User.objects.get(google_id=google_id)
+                user = User.all_objects.get(google_id=google_id)
+                
+                # Restore user if they were soft-deleted
+                if getattr(user, 'is_deleted', False):
+                    user.restore()
+                    
                 created = False
 
                 # Update profile picture if changed
@@ -1259,8 +1275,14 @@ class GoogleAuthView(APIView):
 
             except User.DoesNotExist:
                 # Try to get user by email
+                # Again, check all_objects including soft-deleted ones
                 try:
-                    user = User.objects.get(email=email)
+                    user = User.all_objects.get(email=email)
+                    
+                    # Restore user if they were soft-deleted
+                    if getattr(user, 'is_deleted', False):
+                        user.restore()
+                        
                     created = False
 
                     # Link Google account to existing user
@@ -1279,6 +1301,7 @@ class GoogleAuthView(APIView):
                         google_id=google_id,
                         profile_picture=profile_picture,
                         is_email_verified=True,
+                        login_method='oauth_google'
                     )
                     created = True
 
@@ -1287,11 +1310,16 @@ class GoogleAuthView(APIView):
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
 
-            session = UserSession.objects.filter(
-                user=user, 
-                is_active=True
-            ).order_by('-last_activity').first()
-            
+            # Track session
+            session = None
+            try:
+                if created:
+                    session = track_signup(request, user, method='oauth_google')
+                else:
+                    session = track_login(request, user, method='oauth_google')
+            except Exception as e:
+                logger.warning(f"Failed to track Google auth session: {e}")
+
             if session:
                 session.refresh_jti = refresh.get('jti')
                 session.save(update_fields=['refresh_jti'])
@@ -1321,6 +1349,7 @@ class GoogleAuthView(APIView):
             }, status=400)
         
         except Exception as e:
+            logger.exception(f"Google Auth unexpected error: {str(e)}")
             return Response({
                 'success': False,
                 'error': f'Authentication failed: {str(e)}'
@@ -2910,8 +2939,44 @@ class InstagramAccountViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Filter by current user — only return active accounts."""
+        """Filter by current user — only return active, non-deleted accounts."""
         return InstagramAccount.objects.filter(user=self.request.user, is_active=True)
+
+    @action(detail=False, methods=['get'])
+    def trash(self, request):
+        """
+        Get list of soft-deleted Instagram accounts
+        GET /api/instagram-accounts/trash/
+        """
+        deleted_accounts = InstagramAccount.all_objects.filter(
+            user=self.request.user,
+            is_deleted=True
+        )
+        serializer = self.get_serializer(deleted_accounts, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        """
+        Restore a soft-deleted Instagram account
+        POST /api/instagram-accounts/{id}/restore/
+        """
+        account = get_object_or_404(
+            InstagramAccount.all_objects, 
+            pk=pk, 
+            user=request.user
+        )
+        if not account.is_deleted:
+            return Response(
+                {'error': 'Account is not in trash'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        account.restore()
+        return Response({
+            'success': True,
+            'message': f'Instagram account "@{account.username}" restored successfully'
+        })
 
     @action(detail=True, methods=['get'])
     def posts(self, request, pk=None):

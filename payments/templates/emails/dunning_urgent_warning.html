@@ -1,0 +1,68 @@
+{% extends "emails/base_email_minimal.html" %}
+
+{% block title %}Action required — {{ days_remaining }} days left{% endblock %}
+
+{% block content %}
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Hi {{ user.first_name|default:user.username }},
+    </p>
+
+    <p style="margin: 0 0 16px 0; font-size: 16px; color: #000000;">
+        Your payment still hasn't gone through. You have <strong>{{ days_remaining }} days</strong> to update your payment method before your account is suspended.
+    </p>
+
+    <!-- Urgency Box -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0;">
+        <tr>
+            <td style="padding: 16px; background-color: #fffbeb; border: 1px solid #fde68a;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; color: #000000;">
+                    {{ days_remaining }} days remaining
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #666666;">
+                    After this period, your {{ plan_name }} subscription will be suspended and you'll lose access to project creation and editing.
+                </p>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Payment Details -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 24px 0; border: 1px solid #e0e0e0;">
+        <tr>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #e0e0e0;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Amount due</td>
+                        <td align="right" style="font-size: 14px; color: #000000;">{{ currency }} {{ amount }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 12px 16px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="font-size: 14px; color: #666666;">Reason</td>
+                        <td align="right" style="font-size: 14px; color: #000000;">{{ failure_reason }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Button -->
+    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 32px 0;">
+        <tr>
+            <td align="center" style="background-color: #000000; border-radius: 4px;">
+                <a href="{{ retry_url }}" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;">Fix payment now</a>
+            </td>
+        </tr>
+    </table>
+
+    <p style="margin: 0 0 16px 0; font-size: 14px; color: #000000;">
+        Having trouble? Reply to this email or contact <a href="mailto:{{ support_email }}" style="color: #000000; text-decoration: underline;">{{ support_email }}</a>
+    </p>
+
+    <p style="margin: 0; font-size: 14px; color: #000000;">
+        — The {{ company_name }} team
+    </p>
+{% endblock %}

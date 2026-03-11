@@ -2,13 +2,18 @@ from django.db import models
 
 # Create your models here.
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.utils import timezone
 import uuid
 
 from core import settings
+from .mixins import SoftDeleteMixin, SoftDeleteQuerySet
 
-class User(AbstractUser):
+class SoftDeleteUserManager(UserManager):
+    def get_queryset(self):
+        return SoftDeleteQuerySet(self.model).filter(is_deleted=False)
+
+class User(SoftDeleteMixin, AbstractUser):
     """Extended User model"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True, db_index=True)
@@ -28,6 +33,7 @@ class User(AbstractUser):
     google_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     github_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     profile_picture = models.URLField(blank=True, null=True)
+    login_method = models.CharField(max_length=50, blank=True, null=True, default='password')
 
     # Additional fields
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -141,7 +147,9 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
     last_login_at = models.DateTimeField(blank=True, null=True)
 
-    
+    # Soft Delete Manager
+    objects = SoftDeleteUserManager()
+
     class Meta:
         db_table = 'users'
         ordering = ['-created_at']
@@ -851,7 +859,7 @@ class Feedback(models.Model):
 
 
 
-class InstagramAccount(models.Model):
+class InstagramAccount(SoftDeleteMixin, models.Model):
     """Instagram account connection"""
     CONNECTION_CHOICES = [
         ('facebook_graph', 'Facebook Graph API (Legacy)'),

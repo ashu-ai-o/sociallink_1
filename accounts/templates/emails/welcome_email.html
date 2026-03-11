@@ -1,168 +1,31 @@
-<!DOCTYPE html>
-<html>
+{% extends 'emails/base_email_minimal.html' %}
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Glad Monet</title>
-    <style>
-        body {
-            font-family: Georgia, 'Times New Roman', Times, serif;
-            background-color: #FAFAF8;
-            color: #191919;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
+{% block title %}Welcome to dm-me{% endblock %}
 
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 40px 20px 0 20px;
-        }
+{% block hero %}
+<img src="https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=800" class="hero-img" alt="Welcome to dm-me">
+{% endblock %}
 
-        .header {
-            margin-bottom: 40px;
-        }
+{% block content %}
+<h2>Welcome, {{ user.first_name|default:user.username }}!</h2>
+<p>We're thrilled to have you here. <strong>dm-me</strong> is the ultimate engine designed to help you build, automate, and grow your Instagram engagement into a real business.</p>
 
-        .logo {
-            font-family: Georgia, 'Times New Roman', Times, serif;
-            font-size: 24px;
-            font-weight: bold;
-            color: #191919;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .logo span {
-            color: #D97757;
-            font-size: 28px;
-            line-height: 1;
-        }
-
-        h1 {
-            font-size: 32px;
-            font-weight: normal;
-            margin: 0 0 24px 0;
-            color: #191919;
-        }
-
-        h2 {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 32px 0 16px 0;
-            color: #191919;
-        }
-
-        p {
-            font-size: 18px;
-            margin: 0 0 24px 0;
-            color: #191919;
-        }
-
-        ul {
-            padding-left: 20px;
-            margin-bottom: 32px;
-        }
-
-        li {
-            font-size: 18px;
-            margin-bottom: 12px;
-            color: #191919;
-        }
-
-        li strong {
-            font-weight: bold;
-        }
-
-        .button {
-            display: inline-block;
-            background-color: #191919;
-            color: #FAFAF8 !important;
-            text-decoration: none;
-            padding: 14px 28px;
-            border-radius: 6px;
-            font-family: Helvetica, Arial, sans-serif;
-            font-weight: 500;
-            font-size: 16px;
-            margin: 16px 0 32px 0;
-        }
-
-        .footer-wrapper {
-            background-color: #191919;
-            color: #FAFAF8;
-            padding: 40px 20px;
-            margin-top: 60px;
-        }
-
-        .footer-content {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .footer-logo {
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 18px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 24px;
-            display: block;
-            color: #FAFAF8;
-            text-decoration: none;
-        }
-
-        .footer-text {
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 12px;
-            color: #999999;
-            margin: 0 0 12px 0;
-            line-height: 1.5;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <div class="header">
-            <a href="#" class="logo">
-                <img src="logo_black_trans.svg" alt="GladMonet" style="height: 70px; width: 70px; vertical-align: middle;">GladMonet
-            </a>
-            <img src="https://images.pexels.com/photos/34074202/pexels-photo-34074202.jpeg" alt="Welcome" style="width: 100%; margin-top: 24px; border-radius: 8px;">
-        </div>
-
-        <h1>Welcome, {{ user.first_name|default:user.username }}.</h1>
-
-        <p>GladMonet is here—and it's ready to help you build amazing things.</p>
-
-        <h2>What you can do now:</h2>
-
-        <ul>
-            <li><strong>Build faster:</strong> Leverage our advanced AI tools to accelerate your development workflow.
-            </li>
-            <li><strong>Collaborate seamlessly:</strong> Invite your team and work together in real-time.</li>
-            <li><strong>Scale with confidence:</strong> Our platform grows with you, from prototype to production.</li>
-        </ul>
-
-        <div>
-            <a href="{{ frontend_url }}" class="button">Go to Dashboard</a>
-        </div>
-
-        <p>We're excited to see what you create.</p>
-
-        <p>—The Glad Monet Team</p>
+<div style="margin: 40px 0;">
+    <div style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #4f46e5;">🚀 Build Faster</h3>
+        <p style="margin: 0; font-size: 14px; color: #4b5563;">Leverage our advanced AI tools to accelerate your development workflow and automate replies in seconds.</p>
     </div>
-
-    <div class="footer-wrapper">
-        <div class="footer-content">
-            <a href="#" class="footer-logo">GLAD MONET</a>
-            <p class="footer-text">This email was sent to {{ user.email }}.</p>
-            <p class="footer-text">&copy; {% now "Y" %} Glad Monet. All rights reserved.</p>
-        </div>
+    <div style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #4f46e5;">✨ Personalize Everything</h3>
+        <p style="margin: 0; font-size: 14px; color: #4b5563;">Use your own tone and style with our AI personality engine to make every interaction feel human.</p>
     </div>
-</body>
+    <div style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #4f46e5;">📈 Scale with Confidence</h3>
+        <p style="margin: 0; font-size: 14px; color: #4b5563;">Our platform grows with you, providing the analytics and performance tracking you need to succeed.</p>
+    </div>
+</div>
 
-</html>
+<div style="text-align: center; margin-top: 32px;">
+    <a href="{{ frontend_url }}/dashboard" class="btn">Get Started Now</a>
+</div>
+{% endblock %}

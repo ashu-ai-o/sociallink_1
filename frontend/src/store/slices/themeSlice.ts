@@ -17,7 +17,11 @@ const getSystemTheme = (): ThemeMode => {
 
 const getSavedTheme = (): ThemeMode => {
   const saved = localStorage.getItem('theme') as ThemeMode;
-  return saved || getSystemTheme();
+  const theme = saved || getSystemTheme();
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }
+  return theme;
 };
 
 const initialState: ThemeState = {

@@ -12,7 +12,8 @@ import secrets
 import requests
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from django.http import HttpRequest
 from django.utils import timezone
 from django.db import models
@@ -279,7 +280,10 @@ class SessionTracker:
         """
         # Extract basic data
         ip_address, proxy_ip = SessionTracker.get_client_ip(request)
-        user_agent_string = request.META.get('HTTP_USER_AGENT', '')
+        user_agent_string = request.META.get('HTTP_USER_AGENT', 'Unknown User Agent')
+        # Ensure ip_address is not empty to avoid DB errors
+        if not ip_address:
+            ip_address = '0.0.0.0'
         referrer = request.META.get('HTTP_REFERER', '')
 
         # Get detailed information
@@ -310,7 +314,7 @@ class SessionTracker:
 
             session = UserSession.objects.create(
                 user=user,
-                session_key=request.session.session_key or '',
+                session_key=getattr(request, 'session', {}).get('session_key', '') if hasattr(request, 'session') else '',
                 session_token=session_token,
 
                 # IP and Network

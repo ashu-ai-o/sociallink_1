@@ -5,10 +5,11 @@ Automation Models - WITH COMMENT REPLY FEATURE
 from django.db import models
 import uuid
 from accounts.models import InstagramAccount
+from accounts.mixins import SoftDeleteMixin
 from .validators import InputSanitizer
 
 
-class Automation(models.Model):
+class Automation(SoftDeleteMixin, models.Model):
     """Core automation model with comment reply support"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     instagram_account = models.ForeignKey(

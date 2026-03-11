@@ -97,12 +97,12 @@ class RegisterSerializer(serializers.ModelSerializer):
                 "email": "Only Gmail (@gmail.com) and Yahoo (@yahoo.com) email addresses are allowed for registration."
             })
 
-        # Check if email already exists
-        if User.objects.filter(email=attrs['email']).exists():
-            raise serializers.ValidationError({"email": "Email is already registered."})
+        # Check if email already exists (including soft-deleted)
+        if User.all_objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({"email": "Email is already registered. If you previously deleted your account, please contact support or try logging in to reactivate it."})
 
-        # Check if username already exists
-        if User.objects.filter(username=attrs['username']).exists():
+        # Check if username already exists (including soft-deleted)
+        if User.all_objects.filter(username=attrs['username']).exists():
             raise serializers.ValidationError({"username": "Username is already taken."})
 
         return attrs
@@ -133,13 +133,16 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         if email and password:
-            # Get user by email
+            # Get user by email (allow soft-deleted users to login and reactivate)
             try:
-                user_obj = User.objects.get(email=email)
+                user_obj = User.all_objects.get(email=email)
             except User.DoesNotExist:
                 print(f"[LOGIN DEBUG] No user found with email: {email}")
                 raise serializers.ValidationError("Invalid credentials.")
 
+            # If user is soft-deleted, we will restore them if password is correct
+            is_deleted = getattr(user_obj, 'is_deleted', False)
+            
             # Authenticate using email (USERNAME_FIELD = 'email')
             # Debug: check if password is correct before authenticate
             pwd_check = user_obj.check_password(password)
@@ -151,6 +154,11 @@ class LoginSerializer(serializers.Serializer):
             if not user:
                 print(f"[LOGIN DEBUG] authenticate() failed for email={email} (check_password={pwd_check})")
                 raise serializers.ValidationError("Invalid credentials.")
+
+            # Reactivate soft-deleted user
+            if is_deleted:
+                print(f"[LOGIN DEBUG] Reactivating soft-deleted user: {email}")
+                user.restore()
 
             if not user.is_active:
                 print(f"[LOGIN DEBUG] User {email} is inactive")
@@ -415,8 +423,9 @@ class InstagramAccountConnectSerializer(serializers.Serializer):
         """Create Instagram account connection"""
         user = self.context['request'].user
         
-        # Check if account already exists
-        instagram_account, created = InstagramAccount.objects.update_or_create(
+        # Check if account already exists (including soft-deleted)
+        # Use all_objects to prevent UNIQUE constraint failures
+        instagram_account, created = InstagramAccount.all_objects.update_or_create(
             instagram_user_id=validated_data['instagram_user_id'],
             defaults={
                 'user': user,
@@ -427,6 +436,8 @@ class InstagramAccountConnectSerializer(serializers.Serializer):
                 'profile_picture_url': validated_data.get('profile_picture_url', ''),
                 'followers_count': validated_data.get('followers_count', 0),
                 'is_active': True,
+                'is_deleted': False,  # Ensure it's restored
+                'deleted_at': None
             }
         )
         
@@ -436,6 +447,7 @@ class InstagramAccountConnectSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     """Detailed user profile with Instagram accounts"""
     instagram_accounts = InstagramAccountSerializer(many=True, read_only=True)
+    subscription = serializers.SerializerMethodField(read_only=True)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
@@ -445,9 +457,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'phone', 'bio', 'profile_picture', 'is_email_verified',
             'onboarding_completed', 'onboarding_step',
             'email_preferences', 'notification_preferences',
-            'instagram_accounts', 'created_at', 'updated_at', 'last_login_at'
+            'instagram_accounts', 'subscription', 'created_at', 'updated_at', 'last_login_at'
         ]
         read_only_fields = ['id', 'email', 'is_email_verified', 'created_at', 'updated_at', 'last_login_at']
+
+    def get_subscription(self, obj):
+        """Get user's subscription details if available"""
+        from payments.serializers import UserSubscriptionSerializer
+        if hasattr(obj, 'subscription'):
+            try:
+                sub = obj.subscription
+            except obj.__class__.subscription.RelatedObjectDoesNotExist:
+                return None
+            return UserSubscriptionSerializer(sub).data
+        return None
+
+
+
 
     def update(self, instance, validated_data):
         # Handle profile picture upload

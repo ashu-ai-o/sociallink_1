@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice {{ invoice_number }}</title>
+    <style>
+        @page { size: A4; margin: 2.5cm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; color: #334155; line-height: 1.6; font-size: 10pt; }
+        .header { margin-bottom: 60px; }
+        .logo { font-size: 24pt; font-weight: 900; color: #4f46e5; }
+        .invoice-label { font-size: 32pt; font-weight: 100; color: #e2e8f0; text-align: right; margin-top: -45pt; }
+        .details-grid { width: 100%; margin-bottom: 80px; }
+        .details-grid td { vertical-align: top; width: 50%; }
+        .meta-label { font-size: 8pt; text-transform: uppercase; color: #94a3b8; font-weight: bold; margin-bottom: 4px; }
+        .meta-value { font-size: 10pt; color: #0f172a; margin-bottom: 20px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+        .items-table th { text-align: left; font-size: 8pt; text-transform: uppercase; color: #94a3b8; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+        .items-table td { padding: 20px 0; border-bottom: 1px solid #f8fafc; color: #1e293b; }
+        .totals-area { float: right; width: 220px; margin-top: 20px; }
+        .total-row { border-top: 2px solid #4f46e5; padding-top: 15px; }
+        .total-val { font-size: 18pt; font-weight: 900; color: #0f172a; text-align: right; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: left; font-size: 8pt; color: #cbd5e1; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">dm-me</div>
+        <div class="invoice-label">INVOICE</div>
+    </div>
+
+    <table class="details-grid">
+        <tr>
+            <td>
+                <div class="meta-label">Billed To</div>
+                <div class="meta-value">
+                    <strong>{{ user_name }}</strong><br>
+                    {{ user_email }}
+                </div>
+                <div class="meta-label">Region</div>
+                <div class="meta-value">{{ user_country }}</div>
+            </td>
+            <td style="text-align: right;">
+                <div class="meta-label">Invoice Number</div>
+                <div class="meta-value">#{{ invoice_number }}</div>
+                <div class="meta-label">Issue Date</div>
+                <div class="meta-value">{{ date_formatted }}</div>
+                <div class="meta-label">Payment ID</div>
+                <div class="meta-value" style="font-family: monospace; font-size: 8pt;">{{ razorpay_payment_id|default:"—" }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th style="text-align: right;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ plan_name }} ({{ billing_cycle|title }})</td>
+                <td style="text-align: right;">{{ local_currency }} {{ base_local_amount|floatformat:2 }}</td>
+            </tr>
+            {% if proration_credit_local > 0 %}
+            <tr>
+                <td>Proration Credit</td>
+                <td style="text-align: right; color: #10b981;">- {{ local_currency }} {{ proration_credit_local|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+            {% if tax_amount_local > 0 %}
+            <tr>
+                <td>{{ tax_name|default:"Tax" }} (18%)</td>
+                <td style="text-align: right;">{{ local_currency }} {{ tax_amount_local|floatformat:2 }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="totals-area">
+        <div class="meta-label" style="text-align: right;">Total Amount</div>
+        <div class="total-row">
+            <div class="total-val">{{ local_currency }} {{ final_total|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <strong>dm-me</strong> &bull; Automation for Instagram &bull; support@dm-me.com<br>
+        This is a computer-generated document. No signature is required.
+    </div>
+</body>
+</html>

@@ -1,9 +1,3 @@
-from django.contrib import admin
-from .models import User, InstagramAccount
-# Register your models here.
-
-admin.site.register(InstagramAccount)
-
 
 
 
@@ -13,7 +7,29 @@ Admin configuration for users app
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils import timezone
-from .models import User, EmailVerificationToken, PasswordResetToken, Feedback
+from .models import User, InstagramAccount, EmailVerificationToken, PasswordResetToken, Feedback, UserSession, PageVisit, UserEvent, EnterpriseContact
+
+class SoftDeleteAdminMixin:
+    """Mixin to provide soft delete support in Django Admin"""
+    
+    def get_queryset(self, request):
+        return self.model.all_objects.all()
+
+    @admin.action(description='Restore selected items')
+    def restore_selected(self, request, queryset):
+        count = 0
+        for obj in queryset.filter(is_deleted=True):
+            obj.restore()
+            count += 1
+        self.message_user(request, f'Restored {count} item(s)')
+
+    @admin.action(description='Soft delete selected items')
+    def soft_delete_selected(self, request, queryset):
+        count = 0
+        for obj in queryset.filter(is_deleted=False):
+            obj.delete()
+            count += 1
+        self.message_user(request, f'Soft deleted {count} item(s)')
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
@@ -59,17 +75,25 @@ class FeedbackAdmin(admin.ModelAdmin):
 
 
 
+@admin.register(InstagramAccount)
+class InstagramAccountAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ('username', 'instagram_user_id', 'followers_count', 'is_active', 'is_deleted', 'created_at')
+    list_filter = ('is_active', 'is_deleted', 'connection_method', 'created_at')
+    search_fields = ('username', 'instagram_user_id', 'full_name')
+    actions = ['restore_selected', 'soft_delete_selected']
+
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+class UserAdmin(SoftDeleteAdminMixin, BaseUserAdmin):
     """Enhanced admin for User model with 2FA fields"""
     list_display = (
         'email', 'username', 'first_name', 'last_name',
-        'is_email_verified', 'two_factor_enabled',  # Added 2FA status
-        'is_staff', 'created_at', 'cookie_consent_given','cookie_consent_date',  
+        'get_auth_method', # Show if Google or Email
+        'is_email_verified', 'two_factor_enabled',
+        'is_staff', 'created_at',
     )
     list_filter = (
-        'is_staff', 'is_superuser', 'is_active',
-        'is_email_verified', 'two_factor_enabled',  # Added 2FA filter
+        'is_staff', 'is_superuser', 'is_active', 'is_deleted',
+        'is_email_verified', 'two_factor_enabled',
         'created_at'
     )
     search_fields = ('email', 'username', 'first_name', 'last_name')
@@ -78,7 +102,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {
-            'fields': ('first_name', 'last_name', 'email', 'phone', 'bio', 'profile_picture', 'notification_preferences', 'email_preferences')
+            'fields': ('first_name', 'last_name', 'email', 'phone', 'get_auth_source', 'bio', 'profile_picture', 'notification_preferences', 'email_preferences')
         }),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
@@ -111,8 +135,22 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = (
         'created_at', 'updated_at', 'last_login_at',
-        'two_factor_secret', 'backup_codes', 'two_factor_enabled_at'  # Make 2FA fields readonly
+        'get_auth_source',
+        'two_factor_secret', 'backup_codes', 'two_factor_enabled_at'
     )
+
+    # Helper methods for better display
+    def get_auth_method(self, obj):
+        if obj.google_id:
+            return "Google OAuth"
+        return "Email/Password"
+    get_auth_method.short_description = 'Auth Method'
+
+    def get_auth_source(self, obj):
+        if obj.google_id:
+            return "User authenticated via Google (No local password required)"
+        return "Standard Email/Password"
+    get_auth_source.short_description = 'Authentication Source'
 
     add_fieldsets = (
         (None, {
@@ -126,7 +164,7 @@ class UserAdmin(BaseUserAdmin):
         return super().get_queryset(request).select_related()
     
     # Custom actions
-    actions = ['disable_2fa_for_users']
+    actions = ['disable_2fa_for_users', 'restore_selected', 'soft_delete_selected']
     
     @admin.action(description='Disable 2FA for selected users')
     def disable_2fa_for_users(self, request, queryset):
