@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file: .env
+    environment:
+      - POSTGRES_DB=${DB_NAME:-DmMe_db}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+  # 2. Redis for Celery & Caching
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  # 3. Main Django Application (Gunicorn)
+  web:
+    build: .
+    restart: always
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    volumes:
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+
+  # 4. Celery Worker
+  celery_worker:
+    build: .
+    restart: always
+    command: celery -A core worker -l info -P gevent --autoscale=50,5
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  # 5. Celery Beat
+  celery_beat:
+    build: .
+    restart: always
+    command: celery -A core beat -l info
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:

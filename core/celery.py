@@ -8,13 +8,15 @@ app = Celery('core')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
-# Concurrency settings for 10K+ users
+# Dynamic Load Management for 1000+ Users targeting Gevent pool
 app.conf.update(
-    worker_prefetch_multiplier=1,  # Prevent worker hogging tasks
-    worker_max_tasks_per_child=1000,  # Restart worker after 1000 tasks
-    task_acks_late=True,  # Acknowledge after completion
+    worker_pool='gevent',             # Re-enable the gevent pool
+    worker_autoscale='1000,10',       # Scale green threads up to 1000 dynamically
+    worker_prefetch_multiplier=1,
+    worker_max_tasks_per_child=1000,
+    task_acks_late=True,
     task_reject_on_worker_lost=True,
-    broker_pool_limit=None,  # No limit on broker connections
+    broker_pool_limit=None,           # Prevent Redis from crashing the pool
 )
 
 # Beat schedule - runs in background

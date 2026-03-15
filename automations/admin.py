@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Automation, AutomationTrigger, Contact, AutomationVariant
+from .models import Automation, AutomationTrigger, Contact, AutomationVariant, AISettings
 from accounts.admin import SoftDeleteAdminMixin
 # Register your models here.
 
@@ -18,3 +18,15 @@ class AutomationAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 admin.site.register(AutomationTrigger)
 admin.site.register(Contact)
 admin.site.register(AutomationVariant)
+
+@admin.register(AISettings)
+class AISettingsAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'provider')
+    
+    def has_add_permission(self, request):
+        # Allow adding if there is no object yet
+        return not AISettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        # Do not allow deleting the singleton setting
+        return False

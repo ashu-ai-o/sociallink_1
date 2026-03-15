@@ -363,3 +363,32 @@ class AutomationVariant(models.Model):
 # - comment_reply_sent_at (DateTimeField, null=True)
 #
 # ═══════════════════════════════════════════════════════════════
+
+class AISettings(models.Model):
+    """Global AI configuration (Singleton)"""
+    PROVIDER_CHOICES = [
+        ('openrouter', 'OpenRouter'),
+        ('gemini', 'Gemini Flash Free'),
+    ]
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='openrouter')
+    
+    # Optional override for API keys
+    openrouter_api_keys = models.TextField(blank=True, help_text="Comma-separated OpenRouter keys (overrides settings.py)")
+    gemini_api_keys = models.TextField(blank=True, help_text="Comma-separated Gemini API keys (overrides settings.py)")
+
+    class Meta:
+        db_table = 'ai_settings'
+        verbose_name = 'AI Setting'
+        verbose_name_plural = 'AI Settings'
+
+    def __str__(self):
+        return "Global AI Settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj

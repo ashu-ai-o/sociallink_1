@@ -236,6 +236,28 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes max per task
 
+# ── Priority Queues (paid users get faster processing) ──────────────────────
+# Run separate Celery workers per queue:
+#   celery -A core worker -Q paid_high -c 8    (paid/high priority)
+#   celery -A core worker -Q free_default -c 4  (free tier)
+#   celery -A core worker -Q system -c 2         (tokens, beat tasks)
+from kombu import Queue, Exchange
+
+_default_exchange = Exchange('default', type='direct')
+
+CELERY_TASK_QUEUES = (
+    # Paid users: DM sends + AI enhancements (fastest workers)
+    Queue('paid_high', _default_exchange, routing_key='paid_high'),
+    # Free users: DM sends + AI enhancements (standard workers)
+    Queue('free_default', _default_exchange, routing_key='free_default'),
+    # System tasks: token refresh, queue processing (lowest priority)
+    Queue('system', _default_exchange, routing_key='system'),
+)
+
+CELERY_TASK_DEFAULT_QUEUE = 'free_default'
+CELERY_TASK_DEFAULT_EXCHANGE = 'default'
+CELERY_TASK_DEFAULT_ROUTING_KEY = 'free_default'
+
 
 
 # Celery Beat Schedule (automated tasks)
@@ -244,6 +266,7 @@ CELERY_BEAT_SCHEDULE = {
     'retry-pending-triggers': {
         'task': 'automations.tasks.retry_pending_triggers',
         'schedule': 30.0,
+        'options': {'queue': 'system'},
     },
 
     # COMMENT POLLING DISABLED — we use webhooks instead.
@@ -253,12 +276,14 @@ CELERY_BEAT_SCHEDULE = {
     # 'check-comments-fallback': {
     #     'task': 'automations.tasks.check_comments_bulk_async',
     #     'schedule': 300.0,  # every 5 minutes — only if webhooks are unavailable
+    #     'options': {'queue': 'system'},
     # },
 
     # Refresh Instagram Platform API tokens daily — tokens last 60 days, refresh when < 15 days left
     'refresh-instagram-tokens-daily': {
         'task': 'automations.tasks.refresh_instagram_tokens',
         'schedule': 86400.0,  # every 24 hours
+        'options': {'queue': 'system'},
     },
 }
 
@@ -427,7 +452,11 @@ CSRF_TRUSTED_ORIGINS = [
 # ============================================================================
 
 # OpenRouter API (unified gateway for all AI models)
-OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')  # Legacy single key
+# Multi-key rotation: comma-separated list of OpenRouter API keys.
+# The AI service will rotate between these keys (15 req/min each, rotate every 5 min).
+# If only one key is available, add the same key once or set OPENROUTER_API_KEYS equal to OPENROUTER_API_KEY.
+OPENROUTER_API_KEYS = config('OPENROUTER_API_KEYS', default=OPENROUTER_API_KEY)
 OPENROUTER_API_URL = 'https://openrouter.ai/api/v1'
 OPENROUTER_SITE_URL = config('SITE_URL', default='https://DmMe.co')
 
@@ -596,6 +625,26 @@ SESSION_COOKIE_SECURE = not DEBUG  # Only send session cookie over HTTPS
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # Prevent CSRF
 SESSION_COOKIE_AGE = 86400  # 24 hours
+
+# ============================================================================
+# CORS SETTINGS (for Netlify Frontend)
+# ============================================================================
+
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+
+# If no environment variable is set, use these defaults (Netlify)
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
+        "https://socialdmme.netlify.app",
+        "http://localhost:3000", # Common frontend dev port
+        "http://localhost:5173", # Vite dev port
+    ]
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+CSRF_TRUSTED_ORIGINS = [origin.replace("https://", "https://*.") for origin in CORS_ALLOWED_ORIGINS if origin.startswith("https://")]
+# Also trust Netlify directly
+CSRF_TRUSTED_ORIGINS += ["https://socialdmme.netlify.app"]
 
 
 

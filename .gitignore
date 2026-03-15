@@ -7,3 +7,7 @@ logs/
 .env
 .env.*
 webcontainers/**/.installed_libraries.json
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

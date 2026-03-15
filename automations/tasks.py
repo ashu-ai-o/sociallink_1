@@ -139,6 +139,50 @@ class QueueManager:
 
 
 # ============================================================================
+# QUEUE ROUTING HELPER
+# ============================================================================
+
+def _get_user_queue(instagram_account) -> str:
+    """
+    Return the correct Celery queue name based on the user's subscription plan.
+
+    Paid (pro / business, status=active) → 'paid_high'  (fast workers)
+    Free or inactive subscription        → 'free_default'
+
+    Source: payments.models.UserSubscription + SubscriptionPlan
+      - user.subscription.plan.name  → 'free' | 'pro' | 'business'
+      - user.subscription.status     → 'active' | 'trial' | 'cancelled' | 'expired' | 'suspended'
+    """
+    PAID_PLANS = {'pro', 'business'}
+    ACTIVE_STATUSES = {'active'}   # trial users stay on free_default
+
+    try:
+        subscription = instagram_account.user.subscription  # OneToOne from UserSubscription
+        plan_name = subscription.plan.name          # 'free' | 'pro' | 'business'
+        status    = subscription.status             # 'active' | 'trial' | etc.
+
+        is_paid = plan_name in PAID_PLANS and status in ACTIVE_STATUSES
+        return 'paid_high' if is_paid else 'free_default'
+
+    except Exception:
+        # User has no subscription row yet → treat as free
+        return 'free_default'
+
+
+def dispatch_trigger(trigger) -> None:
+    """
+    Dispatch a trigger to the correct Celery queue based on the user's plan.
+    Use this instead of calling process_automation_trigger_async.delay() directly.
+    """
+    queue = _get_user_queue(trigger.automation.instagram_account)
+    process_automation_trigger_async.apply_async(
+        args=[str(trigger.id)],
+        queue=queue,
+    )
+    logger.info(f'[dispatch] Trigger #{trigger.id} → queue={queue}')
+
+
+# ============================================================================
 # MAIN PROCESSING TASK (WITH RATE LIMITING)
 # ============================================================================
 
@@ -258,12 +302,16 @@ def retry_pending_triggers():
 def process_automation_trigger_async(self, trigger_id):
     """
     Process automation trigger with rate limiting
-    
+
     Flow:
     1. Check rate limit
     2. Reply to comment (if enabled)
     3. Send DM
     4. Update stats
+
+    Queue routing:
+    - Paid users: dispatched to 'paid_high' queue
+    - Free users: dispatched to 'free_default' queue
     """
     try:
         asyncio.run(_process_trigger_with_rate_limit(self, trigger_id))
@@ -277,6 +325,8 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     from .models import AutomationTrigger, Contact
     from automations.services.instagram_service_async import InstagramServiceAsync
     from automations.services.ai_service_async import AIServiceOpenRouter
+    from automations.services.gemini_service_async import AIServiceGemini
+    from automations.models import AISettings
     
     # ═══════════════════════════════════════════════════════════
     # STEP 1: Load trigger
@@ -373,25 +423,44 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
     message = automation.DmMessage
     
     if automation.use_ai_enhancement and automation.ai_context:
-        try:
-            from django.conf import settings as django_settings
-            api_key = getattr(django_settings, 'OPENROUTER_API_KEY', '')
-            if api_key:
-                ai_service = AIServiceOpenRouter(api_key=api_key)
-                result = await ai_service.enhance_DmMessage(
-                    base_message=message,
-                    business_context=automation.ai_context,
-                    user_comment=trigger.comment_text,
-                    username=trigger.instagram_username,
-                )
-                if result['success']:
-                    message = result['enhanced_message']
-                    trigger.was_ai_enhanced = True
-                    trigger.ai_modifications = result.get('model_used', 'openrouter')
-                await ai_service.close()
-        except Exception as e:
-            logger.error(f'AI enhancement failed: {str(e)}')
-            # Continue with original message
+        if trigger.ai_modifications == 'FAILED':
+            logger.info(f"Skipping AI enhancement for trigger #{trigger.id} due to previous failure.")
+        else:
+            try:
+                from django.conf import settings as django_settings
+                ai_settings = AISettings.load()
+                
+                # Check active provider
+                if ai_settings.provider == 'gemini':
+                    ai_service = AIServiceGemini()
+                else:
+                    api_key = getattr(django_settings, 'OPENROUTER_API_KEY', '')
+                    # Instantiate openrouter pool or single key
+                    ai_service = AIServiceOpenRouter()
+
+                if ai_service:
+                    result = await ai_service.enhance_DmMessage(
+                        base_message=message,
+                        business_context=automation.ai_context,
+                        user_comment=trigger.comment_text,
+                        username=trigger.instagram_username,
+                    )
+                    if result['success']:
+                        message = result['enhanced_message']
+                        trigger.was_ai_enhanced = True
+                        trigger.ai_modifications = result.get('model_used', ai_settings.provider)
+                    else:
+                        logger.warning(f"AI Enhancement failed for trigger #{trigger.id}. Flagging to avoid retries.")
+                        trigger.was_ai_enhanced = False
+                        trigger.ai_modifications = 'FAILED'
+                        await trigger.asave(update_fields=['was_ai_enhanced', 'ai_modifications'])
+                    await ai_service.close()
+            except Exception as e:
+                logger.error(f'AI enhancement failed: {str(e)}')
+                trigger.was_ai_enhanced = False
+                trigger.ai_modifications = 'FAILED'
+                await trigger.asave(update_fields=['was_ai_enhanced', 'ai_modifications'])
+                # Continue with original message
     
     # ═══════════════════════════════════════════════════════════
     # STEP 6: Send DM
@@ -487,6 +556,23 @@ async def _process_trigger_with_rate_limit(celery_task, trigger_id):
             raise celery_task.retry(countdown=2 ** celery_task.request.retries)
         else:
             logger.error(f'✗ Trigger #{trigger.id} exceeded max retries (3). Giving up.')
+
+
+# ============================================================================
+# QUEUE-AWARE DISPATCH HELPER
+# ============================================================================
+
+def dispatch_trigger(trigger) -> None:
+    """
+    Dispatch a trigger to the correct Celery queue based on the user's plan.
+    Call this wherever you previously called process_automation_trigger_async.delay().
+    """
+    queue = _get_user_queue(trigger.automation.instagram_account)
+    process_automation_trigger_async.apply_async(
+        args=[str(trigger.id)],
+        queue=queue,
+    )
+    logger.info(f'[dispatch] Trigger #{trigger.id} → queue={queue}')
 
 
 # ============================================================================

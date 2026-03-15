@@ -1,6 +1,7 @@
 """
 Unified OpenRouter AI Service - Async Version
 Uses OpenRouter exclusively with multiple model fallbacks
+Supports multi-key rotation via OpenRouterKeyPool
 """
 
 import httpx
@@ -10,6 +11,17 @@ import logging
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# Lazily imported to avoid circular imports at module load
+_key_pool = None
+
+def _get_key_pool():
+    """Return the global key pool singleton (lazy init)."""
+    global _key_pool
+    if _key_pool is None:
+        from automations.services.openrouter_key_pool import OpenRouterKeyPool
+        _key_pool = OpenRouterKeyPool.from_settings()
+    return _key_pool
 
 
 class AIServiceOpenRouter:
@@ -58,23 +70,28 @@ class AIServiceOpenRouter:
         },
     ]
     
-    def __init__(self, api_key: str, site_url: str = 'https://DmMe.co'):
+    def __init__(self, api_key: str = None, site_url: str = 'https://DmMe.co', use_key_pool: bool = True):
         """
         Initialize OpenRouter client
-        
+
         Args:
-            api_key: OpenRouter API key
+            api_key: Optional override API key. If None and use_key_pool=True, keys are
+                     fetched from OpenRouterKeyPool on each request (recommended).
             site_url: Your site URL (for OpenRouter attribution)
+            use_key_pool: When True (default), rotate keys via OpenRouterKeyPool.
         """
-        self.api_key = api_key
+        self._static_api_key = api_key  # May be None if using pool
+        self._use_key_pool = use_key_pool and api_key is None
         self.base_url = 'https://openrouter.ai/api/v1'
         self.site_url = site_url
-        
-        # Create async HTTP client with connection pooling
+
+        # Create async HTTP client WITHOUT a fixed Authorization header.
+        # When using the pool, the header is injected per-request in _generate().
+        init_api_key = api_key or ''
         self.client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
-                'Authorization': f'Bearer {self.api_key}',
+                'Authorization': f'Bearer {init_api_key}',
                 'HTTP-Referer': self.site_url,
                 'X-Title': 'DmMe Pro',
                 'Content-Type': 'application/json',
@@ -145,6 +162,10 @@ class AIServiceOpenRouter:
                     }
                 else:
                     logger.warning(f"✗ {model_name} failed: {result.get('error')}")
+                    status_code = result.get('status_code')
+                    if status_code in [401, 402, 403]:
+                        logger.error(f"Critical API error {status_code}: Aborting model fallback.")
+                        break
                     
             except Exception as e:
                 logger.warning(f"✗ Model {model_id} exception: {str(e)}")
@@ -169,20 +190,28 @@ class AIServiceOpenRouter:
         temperature: float = 0.7
     ) -> Dict:
         """
-        Generate text using OpenRouter
-        
+        Generate text using OpenRouter.
+        Automatically acquires the best available API key from the key pool.
+
         Args:
             prompt: Text prompt
             model: Model ID (e.g., 'anthropic/claude-3.5-sonnet')
             max_tokens: Maximum tokens to generate
             temperature: Creativity (0.0-1.0)
-        
+
         Returns:
             Dict with success flag and generated text or error
         """
+        # Resolve API key: pool (rotating) or static override
+        if self._use_key_pool:
+            api_key = await _get_key_pool().get_key()
+        else:
+            api_key = self._static_api_key or ''
+
         try:
             response = await self.client.post(
                 '/chat/completions',
+                headers={'Authorization': f'Bearer {api_key}'},  # per-request key
                 json={
                     'model': model,
                     'messages': [
@@ -192,20 +221,20 @@ class AIServiceOpenRouter:
                     'temperature': temperature,
                 }
             )
-            
+
             response.raise_for_status()
             data = response.json()
-            
+
             # Extract generated text
             text = data['choices'][0]['message']['content'].strip()
-            
+
             return {
                 'success': True,
                 'text': text,
                 'model': model,
                 'usage': data.get('usage', {}),
             }
-            
+
         except httpx.HTTPStatusError as e:
             error_detail = f"HTTP {e.response.status_code}"
             try:
@@ -213,13 +242,13 @@ class AIServiceOpenRouter:
                 error_detail = error_data.get('error', {}).get('message', error_detail)
             except:
                 pass
-            
+
             return {
                 'success': False,
                 'error': error_detail,
                 'status_code': e.response.status_code,
             }
-            
+
         except Exception as e:
             return {
                 'success': False,
@@ -378,6 +407,11 @@ class AIServiceOpenRouterSync:
                         'model_name': model_name,
                         'provider': 'openrouter',
                     }
+                else:
+                    status_code = result.get('status_code')
+                    if status_code in [401, 402, 403]:
+                        logger.error(f"Critical API error {status_code}: Aborting model fallback.")
+                        break
             except Exception as e:
                 logger.warning(f"Model {model_id} failed: {str(e)}")
                 continue
@@ -407,6 +441,18 @@ class AIServiceOpenRouterSync:
             text = data['choices'][0]['message']['content'].strip()
             
             return {'success': True, 'text': text}
+        except requests.exceptions.HTTPError as e:
+            error_detail = f"HTTP {e.response.status_code}"
+            try:
+                error_data = e.response.json()
+                error_detail = error_data.get('error', {}).get('message', error_detail)
+            except:
+                pass
+            return {
+                'success': False, 
+                'error': error_detail,
+                'status_code': e.response.status_code
+            }
         except Exception as e:
             return {'success': False, 'error': str(e)}
     

@@ -196,15 +196,15 @@ export const AuthPage = () => {
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 group-hover:scale-110 transition-transform">
-              <Instagram className="w-7 h-7 text-white" />
+            <div className="p-3 bg-neutral-900/5 dark:bg-white/20 backdrop-blur-sm rounded-2xl border border-neutral-900/10 dark:border-white/30 group-hover:scale-110 transition-transform">
+              <Instagram className="w-7 h-7 text-neutral-900 dark:text-white" />
             </div>
-            <span className="text-3xl font-bold text-white">DmMe</span>
+            <span className="text-3xl font-bold text-neutral-900 dark:text-white">DmMe</span>
           </Link>
         </div>
 
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/30 dark:from-amber-500/20 to-orange-500/30 dark:to-orange-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
           <div className="relative bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
             <div className="text-center">
               <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-6">
@@ -241,15 +241,15 @@ export const AuthPage = () => {
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 group-hover:scale-110 transition-transform">
-              <Instagram className="w-7 h-7 text-white" />
+            <div className="p-3 bg-neutral-900/5 dark:bg-white/20 backdrop-blur-sm rounded-2xl border border-neutral-900/10 dark:border-white/30 group-hover:scale-110 transition-transform">
+              <Instagram className="w-7 h-7 text-neutral-900 dark:text-white" />
             </div>
-            <span className="text-3xl font-bold text-white">DmMe</span>
+            <span className="text-3xl font-bold text-neutral-900 dark:text-white">DmMe</span>
           </Link>
         </div>
 
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 dark:from-purple-500/20 to-blue-500/30 dark:to-blue-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
           <div className="relative bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
             <button
               onClick={() => {
@@ -324,10 +324,10 @@ export const AuthPage = () => {
       {/* Logo */}
       <div className="text-center mb-8">
         <Link to="/" className="inline-flex items-center gap-3 mb-6 group">
-          <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 group-hover:scale-110 transition-transform">
-            <Instagram className="w-7 h-7 text-white" />
+          <div className="p-3 bg-neutral-900/10 dark:bg-white/20 backdrop-blur-sm rounded-2xl border border-neutral-900/10 dark:border-white/30 group-hover:scale-110 transition-transform">
+            <Instagram className="w-7 h-7 text-neutral-900 dark:text-white" />
           </div>
-          <span className="text-3xl font-bold text-white">
+          <span className="text-3xl font-bold text-neutral-900 dark:text-white">
             DmMe
           </span>
         </Link>
@@ -336,7 +336,7 @@ export const AuthPage = () => {
       {/* 3D Auth Card */}
       <div className="relative">
         {/* 3D shadow layers */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 dark:from-purple-500/20 to-blue-500/30 dark:to-blue-500/20 rounded-3xl blur-2xl transform translate-y-4 translate-x-2"></div>
 
         <div className="relative bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
           {/* Tab Switcher */}
@@ -571,25 +571,25 @@ export const AuthPage = () => {
         </div>
       </div>
 
-      {/* Social Proof */}
+    {/* Social Proof */}
       <div className="mt-8 text-center">
-        <p className="text-sm text-white/80 mb-4">
+        <p className="text-sm text-neutral-600 dark:text-white/80 mb-4">
           Trusted by 10,000+ Instagram businesses
         </p>
         <div className="flex items-center justify-center gap-8">
           <div>
-            <div className="text-2xl font-bold text-white">10K+</div>
-            <div className="text-xs text-white/70">Active Users</div>
+            <div className="text-2xl font-bold text-neutral-900 dark:text-white">10K+</div>
+            <div className="text-xs text-neutral-500 dark:text-white/70">Active Users</div>
           </div>
-          <div className="w-px h-10 bg-white/20"></div>
+          <div className="w-px h-10 bg-neutral-300 dark:bg-white/20"></div>
           <div>
-            <div className="text-2xl font-bold text-white">1M+</div>
-            <div className="text-xs text-white/70">Messages Sent</div>
+            <div className="text-2xl font-bold text-neutral-900 dark:text-white">1M+</div>
+            <div className="text-xs text-neutral-500 dark:text-white/70">Messages Sent</div>
           </div>
-          <div className="w-px h-10 bg-white/20"></div>
+          <div className="w-px h-10 bg-neutral-300 dark:bg-white/20"></div>
           <div>
-            <div className="text-2xl font-bold text-white">99.9%</div>
-            <div className="text-xs text-white/70">Uptime</div>
+            <div className="text-2xl font-bold text-neutral-900 dark:text-white">99.9%</div>
+            <div className="text-xs text-neutral-500 dark:text-white/70">Uptime</div>
           </div>
         </div>
       </div>
